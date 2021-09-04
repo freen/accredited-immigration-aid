@@ -3,11 +3,20 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "devDependencies": {},
+  "devDependencies": {
+    "@babel/cli": "^7.15.4",
+    "@babel/core": "^7.15.5",
+    "@babel/preset-env": "^7.15.4"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "fetchRoster": "curl -o roster.pdf https://www.justice.gov/eoir/page/file/942306/download"
+    "build": "babel index.js -d dist",
+    "fetchRoster": "curl -o roster.pdf https://www.justice.gov/eoir/page/file/942306/download",
+    "start": "npm run build && node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "J. Daniel Bickett",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "pdf-parse": "^1.1.1"
+  }
 }
