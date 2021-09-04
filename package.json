@@ -1,0 +1,13 @@
+{
+  "name": "ayuda-legal-de-inmigracion",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "fetchRoster": "curl -o roster.pdf https://www.justice.gov/eoir/page/file/942306/download"
+  },
+  "author": "J. Daniel Bickett",
+  "license": "ISC"
+}
