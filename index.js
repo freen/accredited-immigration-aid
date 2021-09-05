@@ -15,6 +15,4 @@ pdf(dataBuffer).then((data) => {
 
   const rp = new RosterParser(data.text);
 
-
-
 });
