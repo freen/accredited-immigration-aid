@@ -2,6 +2,7 @@ export default class RosterParser {
   rosterTxt;
   rosterData = {};
   officeSplit = /\s+(Principal Office|\w+ Extension Office)/;
+  twoLineOfficeName = /(?<NameLineOne>\S )$\n(?<NameLineTwo>\S+)\n\s+/;
 
   constructor(rosterTxt) {
     this.rosterTxt = rosterTxt;
