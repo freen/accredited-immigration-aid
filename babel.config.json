@@ -10,10 +10,10 @@
     "@babel/plugin-proposal-class-properties",
     "@babel/plugin-proposal-object-rest-spread"
   ],
-  env: {
-    development: {
-      sourceMaps: 'both',
-      plugins: ['source-map-support']
+  "env": {
+    "development": {
+      "sourceMaps": "both",
+      "plugins": ["source-map-support"]
     }
   }
 }
