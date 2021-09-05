@@ -1,18 +1,35 @@
 export default class RosterParser {
   rosterTxt;
   rosterData = {};
-  officeSplit = /[\n\s\r]+(Principal Office|\w+ Extension Office)/;
+  officeSplit = /\s+(Principal Office|\w+ Extension Office)/;
 
   constructor(rosterTxt) {
     this.rosterTxt = rosterTxt;
-    RosterParser._parse(this.rosterTxt);
+    this._parse(this.rosterTxt);
   }
 
-  static _parse(rosterTxt) {
-    let rosterData = {};
+  _parse(rosterTxt) {
+    const offices = [];
 
-    const rawPieces = rosterTxt.split(this.officeSplit)
+    const pieces = rosterTxt.split(this.officeSplit);
 
-    return rosterData;
+    let i = 1, officeName, officeType, address1, address2, phone;
+    while (i < pieces.length) {
+      officeName = pieces[i-1].split("\n").pop();
+      officeType = pieces[i];
+      [address1, address2, phone] = pieces[i+1].trim().split("\n").slice(0,3);
+      offices.push({
+        officeName,
+        officeType,
+        address1,
+        address2,
+        phone
+      });
+      i += 2;
+    }
+
+    debugger;
+
+    return offices;
   }
 }

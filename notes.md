@@ -9,7 +9,6 @@
   - Fallback to API, which has its own cache
   - Fallback to local cache, if exists, or if its more up to date than API cache
 
-
 # PDF Text Demarcations
 
 ## End of one RA, beg of another
