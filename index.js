@@ -1,6 +1,6 @@
 import fs from 'fs';
 import pdf from 'pdf-parse';
-import RosterParser from './lib/RosterParser';
+import RosterParser from 'RosterParser';
 
 let dataBuffer = fs.readFileSync('roster.pdf');
 
