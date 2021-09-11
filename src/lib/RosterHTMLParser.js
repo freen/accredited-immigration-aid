@@ -41,7 +41,7 @@ export default class RosterHTMLParser {
 
   }
 
-  static _getOfficePgInfo(pInnerHTML) {
+  static _parseOfficePg(pInnerHTML) {
 
   }
 

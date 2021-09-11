@@ -1,5 +1,80 @@
 import RosterHTMLParser from './RosterHTMLParser';
 
+describe('RosterHTMLParser._parseOfficePg', () => {
+  test('parses two line office name', () => {
+    const fixturePgInnerHtml = `Immigrant Hope - Wyoming Idaho
+ 
+Big Piney Extension Office
+Iglesia Cristiana of Big Piney
+340 Smith Ave.
+Big Piney, WY 83113
+(208) 709-0131`;
+
+    expect(RosterHTMLParser._parseOfficePg(fixturePgInnerHtml))
+      .toBe({
+        'officeName': [
+          'Big Piney Extension Office',
+          'Iglesia Cristiana of Big Piney'
+        ],
+        'address1': '340 Smith Ave.',
+        'address2': 'Big Piney, WY 83113',
+        'phone': '(208) 709-0131'
+      });
+  });
+
+  test('parses two line organization name', () => {
+    const fixturePgInnerHtml = `Wyoming Coalition Against Domestic Violence and Sexual 
+Assault (WCADVSA)
+ 
+Principal Office
+710 E. Garfield Street, Suite 218
+Laramie, WY 82070
+(307) 755-5481`;
+
+    expect(RosterHTMLParser._parseOfficePg(fixturePgInnerHtml))
+      .toBe({
+        'organizationName': 'Wyoming Coalition Against Domestic Violence and Sexual Assault (WCADVSA)',
+        'officeName': ['Principal Office'],
+        'address1': '710 E. Garfield Street, Suite 218',
+        'address2': 'Laramie, WY 82070',
+        'phone': '(307) 755-5481'
+      });
+  });
+});
+
+describe('RosterHTMLParser._isOfficePgComplete', () => {
+  test('returns true for complete extension office', () => {
+    const fixturePgInnerHtml = `Catholic Charities of the Diocese of Green Bay
+ 
+Menasha Extension Office 
+1475 Opportunity Way
+Menasha, WI 54952
+(920) 734-2601`;
+
+    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(true);
+  });
+
+  test('returns true for complete principal office', () => {
+    const fixturePgInnerHtml = `Catholic Charities of the Diocese of La Crosse
+ 
+Principal Office
+508 S. 5th St.
+La Crosse, WI 54601
+(608) 519-8024`;
+
+    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(true);
+  });
+
+  test('returns false for name and address cut off after address1 line', () => {
+    const fixturePgInnerHtml = `Redlands Christian Migrant Association, Inc.
+ 
+RCMA - Wimauma Extension Office
+14710 S Charlie Circle`;
+
+    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(false);
+  });
+});
+
 describe('RosterHTMLParser._isOfficePg', () => {
   test('returns true for extension office', () => {
     const fixturePgInnerHtml = `Catholic Charities of the Diocese of Green Bay
@@ -204,7 +279,7 @@ Chicago, IL 60640
 // 7. Re-run Office parsing procedure, recurse to (1)
 
 /**
- * Exhibit E - An Org with an Office, whose name spans 2 lines
+ * Exhibit E - An Org with an Office, whose Org name spans 2 lines
  */
 
 // <p>Wesley Chapel
