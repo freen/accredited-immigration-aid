@@ -44,7 +44,7 @@ export default class RosterHTMLParser {
   static _parseAddressAndPhone(addressAndPhone) {
     const pieces = addressAndPhone.split("\n");
     const phone = pieces.pop();
-    const address = pieces.filter((x) => x.trim() != '');
+    const address = pieces.map((x) => x.trim()).filter((x) => x != '');
 
     return {
       address,
@@ -62,7 +62,7 @@ export default class RosterHTMLParser {
   // 7. Re-run Office parsing procedure, recurse to (1)
   // Assumes pInnerHTML is complete and unsegmented
   static _parseCompleteOfficePg(pInnerHTML) {
-    const officeSplit = /\s{2,}(Principal\s+Office|[\w ]+\s+Extension\s+Office)/;
+    const officeSplit = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
     const matcherOfficeNameLine = /\sOffice$/;
     const matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
     const pieces = pInnerHTML.split(officeSplit);

@@ -81,26 +81,26 @@ Milwaukee, WI 53204
 (414) 269-9952`;
 
     expect(RosterHTMLParser._parseCompleteOfficePg(fixturePgInnerHtml))
-      .toBe([
-              {
-                'orgName': 'Elmbrook Church/James Place Immigration Services',
-                'officeName': 'South Howell Avenue-Milwaukee Extension Office',
-                'address': [
-                  '4204 S Howell Avenue',
-                  'Milwaukee, WI 53207'
-                ],
-                'phone': '(414) 269-9952'
-              },
-              {
-                'orgName': 'Elmbrook Church/James Place Immigration Services',
-                'officeName': 'West Harrison Avenue-Milwaukee Extension Office',
-                'address': [
-                  '807 S. 14th Street',
-                  'Suite 200',
-                  'Milwaukee, WI 53204'
-                ],
-                'phone': '(414) 269-9952'
-              },
+      .toEqual([
+                {
+                  'orgName': 'Elmbrook Church/James Place Immigration Services',
+                  'officeName': 'West Harrison Avenue-Milwaukee Extension Office',
+                  'address': [
+                    '807 S. 14th Street',
+                    'Suite 200',
+                    'Milwaukee, WI 53204'
+                  ],
+                  'phone': '(414) 269-9952'
+                },
+                {
+                  'orgName': 'Elmbrook Church/James Place Immigration Services',
+                  'officeName': 'South Howell Avenue-Milwaukee Extension Office',
+                  'address': [
+                    '4204 S Howell Avenue',
+                    'Milwaukee, WI 53207'
+                  ],
+                  'phone': '(414) 269-9952'
+                }
             ]);
   });
 });
