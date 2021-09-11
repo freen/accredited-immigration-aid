@@ -1,4 +1,4 @@
-export default class RosterParser {
+export default class RosterTextParser {
   rosterTxt;
   rosterData = {};
   officeSplit = /\s+(Principal Office|\w+ Extension Office)/;
