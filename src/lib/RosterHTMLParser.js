@@ -40,8 +40,6 @@ export default class RosterHTMLParser {
     const transitionToOrgs = /<p>Organization\s+Status\s+<\/p>/;
     const transitionToReps = /<p>(\s+)?Recognized(\s+)?Organization(\s+)?<\/p>(\s+)?<p>(\s+)?Accredited(\s+)?Representative(\s+)?<\/p>(\s+)?<p>Accreditation(\s+)?Expiration(\s+)?Date(\s+)?<\/p>(\s+)?<p>Representative(\s+)?Status(\s+)?<\/p>/;
 
-    debugger;
-
     return pInnerHTML.split(transitionToOrgs)
       .pop()
       .split(transitionToReps)
@@ -110,7 +108,7 @@ export default class RosterHTMLParser {
         continue;
       }
       // Office name signals the end of the office chunk
-      if (piece.match(matcherOfficeNameLine)) { // TODO: shouldn't actually have to test this
+      if (piece.match(matcherOfficeNameLine)) {
         thisOffice.officeName = trimTwoOrMoreWhitespaces(piece);
         offices.push(Object.assign({}, thisOffice));
         resetThisOffice();
