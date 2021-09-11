@@ -2,6 +2,27 @@ import RosterHTMLParser from './RosterHTMLParser';
 
 describe('RosterHTMLParser._parseOfficePg', () => {
   test('parses two line office name', () => {
+    const fixturePgInnerHtml = `Centro La Familia Advocacy Services, Inc.
+ 
+Highway City Neighborhood Resource Center Extension 
+Office 
+4718 N. Polk Avenue
+Fresno, CA 93722
+(559) 369-6349`;
+
+    expect(RosterHTMLParser._parseOfficePg(fixturePgInnerHtml))
+      .toBe([{
+              'officeName': 'Highway City Neighborhood Resource Center Extension Office',
+              'address': [
+                '4718 N. Polk Avenue',
+                'Fresno, CA 93722'
+              ],
+              'phone': '(559) 369-6349'
+            }]);
+  });
+
+  
+  test('parses three line address', () => {
     const fixturePgInnerHtml = `Immigrant Hope - Wyoming Idaho
  
 Big Piney Extension Office
@@ -11,15 +32,15 @@ Big Piney, WY 83113
 (208) 709-0131`;
 
     expect(RosterHTMLParser._parseOfficePg(fixturePgInnerHtml))
-      .toBe({
-        'officeName': [
-          'Big Piney Extension Office',
-          'Iglesia Cristiana of Big Piney'
-        ],
-        'address1': '340 Smith Ave.',
-        'address2': 'Big Piney, WY 83113',
-        'phone': '(208) 709-0131'
-      });
+      .toBe([{
+              'officeName': 'Big Piney Extension Office',
+              'address': [
+                'Iglesia Cristiana of Big Piney',
+                '340 Smith Ave.',
+                'Big Piney, WY 83113'
+              ],
+              'phone': '(208) 709-0131'
+            }]);
   });
 
   test('parses two line organization name', () => {
@@ -32,13 +53,53 @@ Laramie, WY 82070
 (307) 755-5481`;
 
     expect(RosterHTMLParser._parseOfficePg(fixturePgInnerHtml))
-      .toBe({
-        'organizationName': 'Wyoming Coalition Against Domestic Violence and Sexual Assault (WCADVSA)',
-        'officeName': ['Principal Office'],
-        'address1': '710 E. Garfield Street, Suite 218',
-        'address2': 'Laramie, WY 82070',
-        'phone': '(307) 755-5481'
-      });
+      .toBe([{
+              'organizationName': 'Wyoming Coalition Against Domestic Violence and Sexual Assault (WCADVSA)',
+              'officeName': 'Principal Office',
+              'address': [
+                '710 E. Garfield Street, Suite 218',
+                'Laramie, WY 82070'
+              ],
+              'phone': '(307) 755-5481'
+            }]);
+  });
+
+  test('parses org name and two offices', () => {
+    const fixturePgInnerHtml = `Elmbrook Church/James Place Immigration Services
+ 
+South Howell Avenue-Milwaukee Extension Office
+4204 S Howell Avenue
+Milwaukee, WI 53207
+(414) 269-9952
+ 
+West Harrison Avenue-Milwaukee Extension Office
+807 S. 14th Street 
+Suite 200 
+Milwaukee, WI 53204
+(414) 269-9952`;
+
+    expect(RosterHTMLParser._parseOfficePg(fixturePgInnerHtml))
+      .toBe([
+              {
+                'organizationName': 'Elmbrook Church/James Place Immigration Services',
+                'officeName': 'South Howell Avenue-Milwaukee Extension Office',
+                'address': [
+                  '4204 S Howell Avenue',
+                  'Milwaukee, WI 53207'
+                ],
+                'phone': '(414) 269-9952'
+              },
+              {
+                'organizationName': 'Elmbrook Church/James Place Immigration Services',
+                'officeName': 'West Harrison Avenue-Milwaukee Extension Office',
+                'address': [
+                  '807 S. 14th Street',
+                  'Suite 200',
+                  'Milwaukee, WI 53204'
+                ],
+                'phone': '(414) 269-9952'
+              },
+            ]);
   });
 });
 

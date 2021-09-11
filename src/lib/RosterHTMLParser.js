@@ -41,8 +41,16 @@ export default class RosterHTMLParser {
 
   }
 
+  // Steps
+  // 1. Identify the <p> is an office b/c inner text contains word "Office"
+  // 2. Everything that precedes the line containing "Office" (use regexp splitter from txt parser) is the org name (trimmed for line breaks)
+  // 3. Everything that follows ~~~ is the $addressAndPhoneNumber
+  // 4. If the $addressAndPhoneNumber contains less than 3 non-empty lines..
+  // 5. Parse next <p> and grab Active information (throw exception if doesn't match, for inspection)
+  // 6. Parse subsequent <p> and concatenate with the inner text of the initial <p>
+  // 7. Re-run Office parsing procedure, recurse to (1)
   static _parseOfficePg(pInnerHTML) {
-
+    officeSplit = /\s+(Principal Office|(\w+) Extension Office)/;
   }
 
   parse() {
