@@ -15,7 +15,8 @@
     "build": "babel src -d dist",
     "fetchRoster": "curl -o roster.pdf https://www.justice.gov/eoir/page/file/942306/download",
     "start": "npm run build && node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:debug": "node --inspect node_modules/.bin/jest --runInBand"
   },
   "author": "J. Daniel Bickett",
   "license": "ISC",

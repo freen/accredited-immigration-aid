@@ -1,64 +1,56 @@
-export default class RosterHTMLParser {
-  rosterDOM;
-  rosterData = {};
+import RosterHTMLParser from './RosterHTMLParser';
 
-  constructor(rawRosterHTML) {
-    this.rosterDOM = document.createElement('html');
-    this.rosterDOM.innerHhtml = RosterHTMLParser._sanitizeRosterHTML(rawRosterHTML);
-  }
+test('strips pdf2html pagebreaks', () => {
+  const fixtureRosterHTML = `
+<p>10/29/08 12/11/26 Active
+</p>
+<p>Community Help Center Muslim Women Resource Center
+ 
+Principal Office
+</p>
+<p>05/28/13 12/20/25 Active</p>
+<p/>
+</div>
+<div class="page"><p/>
+<p>6445 N. Western Avenue, Suite 301
+Chicago, IL 60604
+(773) 764-1686
+</p>
+<p>Easy Solution Consultants, Inc. (ESC, Inc)
+ 
+Principal Office
+4554 N. Broadway Street
+Suite # 223
+Chicago, IL 60640
+(773) 769-2380
+</p>
+`;
+  const expectedResult = `
+<p>10/29/08 12/11/26 Active
+</p>
+<p>Community Help Center Muslim Women Resource Center
+ 
+Principal Office
+</p>
+<p>05/28/13 12/20/25 Active</p>
 
-  static _sanitizeRosterHTML(rosterHTML) {
-    rosterHTML = RosterHTMLParser._stripPageBreaks(rosterHTML);
+<p>6445 N. Western Avenue, Suite 301
+Chicago, IL 60604
+(773) 764-1686
+</p>
+<p>Easy Solution Consultants, Inc. (ESC, Inc)
+ 
+Principal Office
+4554 N. Broadway Street
+Suite # 223
+Chicago, IL 60640
+(773) 769-2380
+</p>
+`;
 
-    return rosterHTML;
-  }
-
-  static _stripPageBreaks(rosterHTML) {
-    const initialPageBreak = '<div class="page"><p/>';
-    const pageBreak = "<p/>\n</div>\n<div class=\"page\"><p/>";
-    const lastClosingPageBreak = "</div>\n</body>";
-    // Order is significant, in the following
-    const replacePairs = [
-      [pageBreak, ''],
-      [initialPageBreak, ''],
-      [lastClosingPageBreak, '</body>'],
-    ];
-    let toFind, toReplace;
-
-    debugger;
-
-    for (const replacePair of replacePairs) {
-      [toFind, toReplace] = replacePair;
-      rosterHTML = rosterHTML.replace(toFind, toReplace);
-      debugger;
-    }
-
-    return rosterHTML;
-  }
-
-  parse() {
-    const offices = [];
-    let i = 1, officeName, officeType, address1, address2, phone;
-
-    while (i < pieces.length) {
-      officeName = pieces[i-1].split("\n").pop();
-      officeType = pieces[i];
-      [address1, address2, phone] = pieces[i+1].trim().split("\n").slice(0,3);
-      offices.push({
-        officeName,
-        officeType,
-        address1,
-        address2,
-        phone
-      });
-      i += 2;
-    }
-
-    debugger;
-
-    return offices;
-  }
-}
+  expect(RosterHTMLParser._stripPageBreaks(fixtureRosterHTML))
+    .toBe(expectedResult);
+});
 
 // Below, demarcating trailing spaces with [ ] since editor is configurd to delete them
 
@@ -187,4 +179,30 @@ export default class RosterHTMLParser {
 // (813) 907-5511
 // </p>
 // <p>10/27/17 05/29/26 Active
+// </p>
+
+/**
+ * Exhibit F - An Org with an Office, whose name spans 2 lines and is split by a pagebreak
+ */
+
+// <p>Decatur
+// </p>
+// <p>Innovation Law Lab
+// [ ]
+// </p>
+// <p>09/07/18 07/05/27 Active</p>
+// <p/>
+// </div>
+// <div class="page"><p/>
+// <p>Decatur Extention Office
+// 701 W Howard Ave
+// Decatur, GA 30030
+// (503) 922-3042
+// </p>
+// <p>Inspiritus, Inc.
+// [ ]
+// Principal Office
+// 143 New Street
+// Decatur, GA 30303
+// (678) 852-8523
 // </p>
