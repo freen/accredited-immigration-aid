@@ -1,13 +1,6 @@
 export default class RosterHTMLParser {
-  rosterDOM;
-  rosterData = {};
 
   static officeMatcher = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
-
-  constructor(rawRosterHTML) {
-    this.rosterDOM = document.createElement('html');
-    this.rosterDOM.innerHhtml = RosterHTMLParser._sanitizeRosterHTML(rawRosterHTML);
-  }
 
   static _sanitizeRosterHTML(rosterHTML) {
     rosterHTML = RosterHTMLParser._chopIrrelevantSections(rosterHTML);
@@ -127,23 +120,13 @@ export default class RosterHTMLParser {
     return offices;
   }
 
-  parse() {
+  static parse(pdf2HtmlOutput) {
     const offices = [];
-    let i = 1, officeName, officeType, address1, address2, phone;
 
-    while (i < pieces.length) {
-      officeName = pieces[i-1].split("\n").pop();
-      officeType = pieces[i];
-      [address1, address2, phone] = pieces[i+1].trim().split("\n").slice(0,3);
-      offices.push({
-        officeName,
-        officeType,
-        address1,
-        address2,
-        phone
-      });
-      i += 2;
-    }
+    const rosterDOM = document.createElement('html');
+    rosterDOM.innerHtml = RosterHTMLParser._sanitizeRosterHTML(rawRosterHTML);
+
+    const currentState = 'ALABAMA';
 
     debugger;
 
