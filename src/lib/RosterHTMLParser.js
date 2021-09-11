@@ -25,15 +25,24 @@ export default class RosterHTMLParser {
     ];
     let toFind, toReplace;
 
-    debugger;
-
     for (const replacePair of replacePairs) {
       [toFind, toReplace] = replacePair;
       rosterHTML = rosterHTML.replace(toFind, toReplace);
-      debugger;
     }
 
     return rosterHTML;
+  }
+
+  static _isOfficePg(pInnerHTML) {
+
+  }
+
+  static _isOfficePgInfoComplete(pInnerHTML) {
+
+  }
+
+  static _getOfficePgInfo(pInnerHTML) {
+
   }
 
   parse() {

@@ -1,7 +1,44 @@
 import RosterHTMLParser from './RosterHTMLParser';
 
-test('strips pdf2html pagebreaks', () => {
-  const fixtureRosterHTML = `
+describe('RosterHTMLParser._isOfficePg', () => {
+  test('returns true for extension office', () => {
+    const fixturePgInnerHtml = `Catholic Charities of the Diocese of Green Bay
+ 
+Menasha Extension Office 
+1475 Opportunity Way
+Menasha, WI 54952
+(920) 734-2601`;
+
+    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(true);
+  });
+
+  test('returns true for principal office', () => {
+    const fixturePgInnerHtml = `Catholic Charities of the Diocese of La Crosse
+ 
+Principal Office
+508 S. 5th St.
+La Crosse, WI 54601
+(608) 519-8024`;
+
+    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(true);
+  });
+
+  test('returns false for recognition period', () => {
+    const fixturePgInnerHtml = "05/05/05 06/27/25 Active\n";
+
+    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(false);
+  });
+
+  test('returns false for city pg', () => {
+    const fixturePgInnerHtml = "Madison\n";
+
+    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(false);
+  });
+});
+
+describe('RosterHTMLParser._stripPageBreaks', () => {
+  test('strips pdf2html pagebreaks', () => {
+    const fixtureRosterHTML = `
 <p>10/29/08 12/11/26 Active
 </p>
 <p>Community Help Center Muslim Women Resource Center
@@ -25,7 +62,7 @@ Chicago, IL 60640
 (773) 769-2380
 </p>
 `;
-  const expectedResult = `
+    const expectedResult = `
 <p>10/29/08 12/11/26 Active
 </p>
 <p>Community Help Center Muslim Women Resource Center
@@ -48,9 +85,11 @@ Chicago, IL 60640
 </p>
 `;
 
-  expect(RosterHTMLParser._stripPageBreaks(fixtureRosterHTML))
-    .toBe(expectedResult);
+    expect(RosterHTMLParser._stripPageBreaks(fixtureRosterHTML))
+      .toBe(expectedResult);
+  });
 });
+
 
 // Below, demarcating trailing spaces with [ ] since editor is configurd to delete them
 
