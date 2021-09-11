@@ -41,16 +41,78 @@ export default class RosterHTMLParser {
 
   }
 
+  static _parseAddressAndPhone(addressAndPhone) {
+    const pieces = addressAndPhone.split("\n");
+    const phone = pieces.pop();
+    const address = pieces.filter((x) => x.trim() != '');
+
+    return {
+      address,
+      phone
+    }
+  }
+
   // Steps
   // 1. Identify the <p> is an office b/c inner text contains word "Office"
-  // 2. Everything that precedes the line containing "Office" (use regexp splitter from txt parser) is the org name (trimmed for line breaks)
+  // 2. Everything that precedes the first line containing "Office" (use regexp splitter from txt parser) is the org name (trimmed for line breaks)
   // 3. Everything that follows ~~~ is the $addressAndPhoneNumber
   // 4. If the $addressAndPhoneNumber contains less than 3 non-empty lines..
   // 5. Parse next <p> and grab Active information (throw exception if doesn't match, for inspection)
   // 6. Parse subsequent <p> and concatenate with the inner text of the initial <p>
   // 7. Re-run Office parsing procedure, recurse to (1)
-  static _parseOfficePg(pInnerHTML) {
-    officeSplit = /\s+(Principal Office|(\w+) Extension Office)/;
+  // Assumes pInnerHTML is complete and unsegmented
+  static _parseCompleteOfficePg(pInnerHTML) {
+    const officeSplit = /\s{2,}(Principal\s+Office|[\w ]+\s+Extension\s+Office)/;
+    const matcherOfficeNameLine = /\sOffice$/;
+    const matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
+    const pieces = pInnerHTML.split(officeSplit);
+    const offices = [];
+    let thisOffice = {};
+    const resetThisOffice = () => {
+      thisOffice = Object.assign({},  {
+        phone: undefined,
+        address: [],
+        officeName: undefined,
+        orgName: undefined
+      });
+    };
+    const trimTwoOrMoreWhitespaces = (str) => (
+      str.replace(/\s{2,}/, ' ')
+    );
+
+    resetThisOffice();
+
+    debugger;
+
+    let piece, orgName;
+    while (piece = pieces.pop()) {
+      // Current office object iteration is empty
+      if (thisOffice.phone == undefined) {
+        // Current piece is an address-and-phone block
+        if (piece.match(matcherPhone)) {
+          thisOffice = Object.assign(thisOffice, RosterHTMLParser._parseAddressAndPhone(piece));
+          continue;
+        }
+        // Finished processing offices, this must be the org name
+        orgName = trimTwoOrMoreWhitespaces(piece);
+        continue;
+      }
+      // Office name signals the end of the office chunk
+      if (piece.match(matcherOfficeNameLine)) { // TODO: shouldn't actually have to test this
+        thisOffice.officeName = trimTwoOrMoreWhitespaces(piece);
+        offices.push(Object.assign({}, thisOffice));
+        resetThisOffice();
+        continue;
+      }
+    }
+
+    if (orgName) {
+      offices.forEach((v, i) => {
+        offices[i].orgName = orgName;
+      });
+    }
+
+    return offices;
   }
 
   parse() {
