@@ -22,7 +22,6 @@ Fresno, CA 93722
             }]);
   });
 
-  
   test('parses three line address', () => {
     const fixturePgInnerHtml = `Immigrant Hope - Wyoming Idaho
  
@@ -229,45 +228,140 @@ Chicago, IL 60640
 });
 
 
-// Below, demarcating trailing spaces with [ ] since editor is configurd to delete them
-
-/**
- * Exhibit A - a single <p> containing name and 2 offices
- */
-
-// <p>03/30/82 06/18/25 Active
-// </p>
-// <p>Elmbrook Church/James Place Immigration Services
-// [ ]
-// South Howell Avenue-Milwaukee Extension Office
-// 4204 S Howell Avenue
-// Milwaukee, WI 53207
-// (414) 269-9952
-// [ ]
-// West Harrison Avenue-Milwaukee Extension Office
-// 807 S. 14th Street[ ]
-// Suite 200[ ]
-// Milwaukee, WI 53204
-// (414) 269-9952
-// </p>
-// <p>10/11/12 09/29/23 Active
-// </p>
-
-/**
- * Exhibit B - a single <p> containing name and 1 offices
- */
-
-// <p>Menasha
-// </p>
-// <p>Catholic Charities of the Diocese of Green Bay
-// [ ]
-// Menasha Extension Office[ ]
-// 1475 Opportunity Way
-// Menasha, WI 54952
-// (920) 734-2601
-// </p>
-// <p>02/23/00 06/28/25 Active
-// </p>
+describe('RosterHTMLParser._chopIrrelevantSections', () => {
+  test('removes everything before and after org index', () => {
+    const fixturePdf2HtmlOutput = `
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="pdf:PDFVersion" content="1.4"/>
+<meta name="X-Parsed-By" content="org.apache.tika.parser.DefaultParser"/>
+<meta name="X-Parsed-By" content="org.apache.tika.parser.pdf.PDFParser"/>
+<meta name="access_permission:modify_annotations" content="true"/>
+<meta name="access_permission:can_print_degraded" content="true"/>
+<meta name="meta:creation-date" content="2021-08-30T12:03:01Z"/>
+<meta name="created" content="2021-08-30T12:03:01Z"/>
+<meta name="access_permission:extract_for_accessibility" content="true"/>
+<meta name="access_permission:assemble_document" content="true"/>
+<meta name="xmpTPg:NPages" content="182"/>
+<meta name="Creation-Date" content="2021-08-30T12:03:01Z"/>
+<meta name="resourceName" content="roster.pdf"/>
+<meta name="dcterms:created" content="2021-08-30T12:03:01Z"/>
+<meta name="dc:format" content="application/pdf; version=1.4"/>
+<meta name="access_permission:extract_content" content="true"/>
+<meta name="access_permission:can_print" content="true"/>
+<meta name="access_permission:fill_in_form" content="true"/>
+<meta name="pdf:encrypted" content="false"/>
+<meta name="producer" content="PDF Engine win32 - (11.0)"/>
+<meta name="Content-Length" content="1080206"/>
+<meta name="access_permission:can_modify" content="true"/>
+<meta name="pdf:docinfo:producer" content="PDF Engine win32 - (11.0)"/>
+<meta name="pdf:docinfo:created" content="2021-08-30T12:03:01Z"/>
+<meta name="Content-Type" content="application/pdf"/>
+<title></title>
+</head>
+<body><div class="page"><p/>
+<p>Recognized Organizations and Accredited Representatives Roster
+by State and City 
+</p>
+<p> 
+Report Last Updated on: 08/30/21
+</p>
+<p> 
+Disclaimer:  The DOJ R&amp;A Program Coordinator maintains a roster of recognized organizations and accredited representatives. The contact 
+information posted in these rosters is provided to the R&amp;A Program by the recognized organizations, and recognized organizations have an 
+obligation to notify the Office of Legal Access Programs, through formal correspondence, of any changes to its contact information (such as 
+name, address, and telephone number).  Therefore, while the Office of Legal Access Programs makes available the most current information 
+provided to our Program Coordinator, it is the responsibility of each recognized organization to keep the Office of Legal Access Programs&rsquo; 
+posted information up to date.
+</p>
+<p> 
+&bull;  Search by Alphabetical Order or press [Ctrl] + [F] to find a representative.
+&bull;  Asterisk * denotes pending renewal. 
+</p>
+<p> 
+</p>
+<p>Alabama   |  Alaska   |  Arizona   |  Arkansas   |  California   |  Colorado   |  Connecticut   |  Delaware   |  Florida   |  
+</p>
+<p>Georgia   |  Hawaii   |  Idaho   |  Illinois   |  Indiana   |  Iowa   |  Kansas   |  Kentucky   |  Louisiana   |  Maine   |  
+</p>
+<p>Maryland   |  Massachusetts   |  Michigan   |  Minnesota   |  Mississippi   |  Missouri   |  Montana   |  Nebraska   |  
+</p>
+<p>Nevada   |  New Hampshire   |  New Jersey   |  New Mexico   |  New York   |  North Carolina   |  North Dakota   |  
+</p>
+<p>Ohio   |  Oklahoma   |  Oregon   |  Pennsylvania   |  Rhode Island   |  South Carolina   |  South Dakota   |  Tennessee
+</p>
+<p>  |  Texas   |  Utah   |  Vermont   |  Virginia   |  Washington   |  Washington D.C.   |  Wisconsin   |  Wyoming   |  
+</p>
+<p> 
+</p>
+<p>ALABAMA
+Recognized 
+Organization
+</p>
+<p>Date 
+Recognized
+</p>
+<p>Recognition 
+Expiration Date
+</p>
+<p>Organization 
+Status 
+</p>
+<p>Laramie
+</p>
+<p>Wyoming Coalition Against Domestic Violence and Sexual 
+Assault (WCADVSA)
+ 
+Principal Office
+710 E. Garfield Street, Suite 218
+Laramie, WY 82070
+(307) 755-5481
+</p>
+<p>06/08/12 02/09/24 Active
+</p>
+<p>Return to the top of the page
+</p>
+<p> 
+Recognized 
+Organization
+</p>
+<p>Accredited 
+Representative
+</p>
+<p>Accreditation 
+Expiration Date
+</p>
+<p>Representative 
+Status
+</p>
+<p>ABA Immigration Justice Project Rodriguez,  Karla Leticia 06/29/24 Active
+</p>
+<p>ABCD Parker Hill/Fenway NSC Serret,  Ivana (DHS only) 05/17/22 Active
+</p>
+<p>Sugilio,  Jenny (DHS only) 08/24/21*
+(Pending Renewal)
+</p>
+`;
+    const expectedResult = `
+<p>Laramie
+</p>
+<p>Wyoming Coalition Against Domestic Violence and Sexual 
+Assault (WCADVSA)
+ 
+Principal Office
+710 E. Garfield Street, Suite 218
+Laramie, WY 82070
+(307) 755-5481
+</p>
+<p>06/08/12 02/09/24 Active
+</p>
+<p>Return to the top of the page
+</p>
+`;
+    expect(RosterHTMLParser._chopIrrelevantSections(fixturePdf2HtmlOutput))
+      .toBe(expectedResult);
+  });
+});
 
 /**
  * Exhibit C - The delimiter for the PDF's "shift" from Orgs to Representatives data set
@@ -330,32 +424,6 @@ Chicago, IL 60640
 // <p>GEORGIA
 // Recognized[ ]
 // Organization
-// </p>
-
-// Steps
-// 1. Identify the <p> is an office b/c inner text contains word "Office"
-// 2. Everything that precedes the line containing "Office" (use regexp splitter from txt parser) is the org name (trimmed for line breaks)
-// 3. Everything that follows ~~~ is the $addressAndPhoneNumber
-// 4. If the $addressAndPhoneNumber contains less than 3 non-empty lines..
-// 5. Parse next <p> and grab Active information (throw exception if doesn't match, for inspection)
-// 6. Parse subsequent <p> and concatenate with the inner text of the initial <p>
-// 7. Re-run Office parsing procedure, recurse to (1)
-
-/**
- * Exhibit E - An Org with an Office, whose Org name spans 2 lines
- */
-
-// <p>Wesley Chapel
-// </p>
-// <p>Immigrant Connection at Florida District of the Wesleyan[ ]
-// Church
-// [ ]
-// Principal Office
-// 3807 Maryweather Lane
-// Wesley Chapel, FL 33544
-// (813) 907-5511
-// </p>
-// <p>10/27/17 05/29/26 Active
 // </p>
 
 /**

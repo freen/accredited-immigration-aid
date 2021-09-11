@@ -2,12 +2,15 @@ export default class RosterHTMLParser {
   rosterDOM;
   rosterData = {};
 
+  static officeMatcher = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
+
   constructor(rawRosterHTML) {
     this.rosterDOM = document.createElement('html');
     this.rosterDOM.innerHhtml = RosterHTMLParser._sanitizeRosterHTML(rawRosterHTML);
   }
 
   static _sanitizeRosterHTML(rosterHTML) {
+    rosterHTML = RosterHTMLParser._chopIrrelevantSections(rosterHTML);
     rosterHTML = RosterHTMLParser._stripPageBreaks(rosterHTML);
 
     return rosterHTML;
@@ -31,6 +34,18 @@ export default class RosterHTMLParser {
     }
 
     return rosterHTML;
+  }
+
+  static _chopIrrelevantSections(pInnerHTML) {
+    const transitionToOrgs = /<p>Organization\s+Status\s+<\/p>/;
+    const transitionToReps = /<p>(\s+)?Recognized(\s+)?Organization(\s+)?<\/p>(\s+)?<p>(\s+)?Accredited(\s+)?Representative(\s+)?<\/p>(\s+)?<p>Accreditation(\s+)?Expiration(\s+)?Date(\s+)?<\/p>(\s+)?<p>Representative(\s+)?Status(\s+)?<\/p>/;
+
+    debugger;
+
+    return pInnerHTML.split(transitionToOrgs)
+      .pop()
+      .split(transitionToReps)
+      .shift();
   }
 
   static _isOfficePg(pInnerHTML) {
@@ -62,10 +77,9 @@ export default class RosterHTMLParser {
   // 7. Re-run Office parsing procedure, recurse to (1)
   // Assumes pInnerHTML is complete and unsegmented
   static _parseCompleteOfficePg(pInnerHTML) {
-    const officeSplit = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
     const matcherOfficeNameLine = /\sOffice$/;
     const matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
-    const pieces = pInnerHTML.split(officeSplit);
+    const pieces = pInnerHTML.split(RosterHTMLParser.officeMatcher);
     const offices = [];
     let thisOffice = {};
     const resetThisOffice = () => {
@@ -81,8 +95,6 @@ export default class RosterHTMLParser {
     );
 
     resetThisOffice();
-
-    debugger;
 
     let piece, orgName;
     while (piece = pieces.pop()) {
@@ -103,6 +115,8 @@ export default class RosterHTMLParser {
         offices.push(Object.assign({}, thisOffice));
         resetThisOffice();
         continue;
+      } else {
+        console.warn(`Unexpected case, piece doesn't match office name: ${piece}`)
       }
     }
 
@@ -138,64 +152,6 @@ export default class RosterHTMLParser {
     return offices;
   }
 }
-
-// Below, demarcating trailing spaces with [ ] since editor is configurd to delete them
-
-/**
- * Exhibit A - a single <p> containing name and 2 offices
- */
-
-// <p>03/30/82 06/18/25 Active
-// </p>
-// <p>Elmbrook Church/James Place Immigration Services
-// [ ]
-// South Howell Avenue-Milwaukee Extension Office
-// 4204 S Howell Avenue
-// Milwaukee, WI 53207
-// (414) 269-9952
-// [ ]
-// West Harrison Avenue-Milwaukee Extension Office
-// 807 S. 14th Street[ ]
-// Suite 200[ ]
-// Milwaukee, WI 53204
-// (414) 269-9952
-// </p>
-// <p>10/11/12 09/29/23 Active
-// </p>
-
-/**
- * Exhibit B - a single <p> containing name and 1 offices
- */
-
-// <p>Menasha
-// </p>
-// <p>Catholic Charities of the Diocese of Green Bay
-// [ ]
-// Menasha Extension Office[ ]
-// 1475 Opportunity Way
-// Menasha, WI 54952
-// (920) 734-2601
-// </p>
-// <p>02/23/00 06/28/25 Active
-// </p>
-
-/**
- * Exhibit C - The delimiter for the PDF's "shift" from Orgs to Representatives data set
- */
-
-// <p>[ ]
-// Recognized[ ]
-// Organization
-// </p>
-// <p>Accredited[ ]
-// Representative
-// </p>
-// <p>Accreditation[ ]
-// Expiration Date
-// </p>
-// <p>Representative[ ]
-// Status
-// </p>
 
 /**
  * Exhibit D - An Org with 1 Office, whose address is split by a page-break
@@ -240,30 +196,4 @@ export default class RosterHTMLParser {
 // <p>GEORGIA
 // Recognized[ ]
 // Organization
-// </p>
-
-// Steps
-// 1. Identify the <p> is an office b/c inner text contains word "Office"
-// 2. Everything that precedes the line containing "Office" (use regexp splitter from txt parser) is the org name (trimmed for line breaks)
-// 3. Everything that follows ~~~ is the $addressAndPhoneNumber
-// 4. If the $addressAndPhoneNumber contains less than 3 non-empty lines..
-// 5. Parse next <p> and grab Active information (throw exception if doesn't match, for inspection)
-// 6. Parse subsequent <p> and concatenate with the inner text of the initial <p>
-// 7. Re-run Office parsing procedure, recurse to (1)
-
-/**
- * Exhibit E - An Org with an Office, whose name spans 2 lines
- */
-
-// <p>Wesley Chapel
-// </p>
-// <p>Immigrant Connection at Florida District of the Wesleyan[ ]
-// Church
-// [ ]
-// Principal Office
-// 3807 Maryweather Lane
-// Wesley Chapel, FL 33544
-// (813) 907-5511
-// </p>
-// <p>10/27/17 05/29/26 Active
 // </p>
