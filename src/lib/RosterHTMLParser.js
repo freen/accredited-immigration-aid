@@ -58,56 +58,61 @@ export default class RosterHTMLParser {
     }
   }
 
-  // Steps
-  // 1. Identify the <p> is an office b/c inner text contains word "Office"
-  // 2. Everything that precedes the first line containing "Office" (use regexp splitter from txt parser) is the org name (trimmed for line breaks)
-  // 3. Everything that follows ~~~ is the $addressAndPhoneNumber
-  // 4. If the $addressAndPhoneNumber contains less than 3 non-empty lines..
-  // 5. Parse next <p> and grab Active information (throw exception if doesn't match, for inspection)
-  // 6. Parse subsequent <p> and concatenate with the inner text of the initial <p>
-  // 7. Re-run Office parsing procedure, recurse to (1)
-  // Assumes pInnerHTML is complete and unsegmented
-  static _parseCompleteOfficePg(pInnerHTML) {
+  static _parseOfficePgPieces(officePgPiece, officeProps) {
     const matcherOfficeNameLine = /\sOffice$/;
     const matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
-    const pieces = pInnerHTML.split(RosterHTMLParser.officeMatcher);
-    const offices = [];
-    let thisOffice = {};
-    const resetThisOffice = () => {
-      thisOffice = Object.assign({},  {
-        phone: undefined,
-        address: [],
-        officeName: undefined,
-        orgName: undefined
-      });
-    };
     const trimTwoOrMoreWhitespaces = (str) => (
       str.replace(/\s{2,}/, ' ')
     );
 
-    resetThisOffice();
-
-    let piece, orgName;
-    while (piece = pieces.pop()) {
-      // Current office object iteration is empty
-      if (thisOffice.phone == undefined) {
-        // Current piece is an address-and-phone block
-        if (piece.match(matcherPhone)) {
-          thisOffice = Object.assign(thisOffice, RosterHTMLParser._parseAddressAndPhone(piece));
-          continue;
-        }
-        // Finished processing offices, this must be the org name
-        orgName = trimTwoOrMoreWhitespaces(piece);
-        continue;
+    // Current office object iteration is empty
+    if (officeProps.phone == undefined) {
+      // Current piece is an address-and-phone block
+      if (officePgPiece.match(matcherPhone)) {
+        const addressAndPhone = RosterHTMLParser._parseAddressAndPhone(officePgPiece)
+        officeProps = Object.assign(officeProps, addressAndPhone);
+        return officeProps;
       }
-      // Office name signals the end of the office chunk
-      if (piece.match(matcherOfficeNameLine)) {
-        thisOffice.officeName = trimTwoOrMoreWhitespaces(piece);
-        offices.push(Object.assign({}, thisOffice));
-        resetThisOffice();
-        continue;
-      } else {
-        console.warn(`Unexpected case, piece doesn't match office name: ${piece}`)
+      // Finished processing offices, this must be the org name
+      officeProps.orgName = trimTwoOrMoreWhitespaces(officePgPiece);
+      return officeProps;
+    }
+    // Office name signals the end of the office chunk
+    if (officePgPiece.match(matcherOfficeNameLine)) {
+      officeProps.officeName = trimTwoOrMoreWhitespaces(officePgPiece);
+      officeProps.complete = true;
+    } else {
+      console.warn(`Unexpected case, officePgPiece doesn't match office name: ${officePgPiece}`)
+    }
+    return officeProps;
+  }
+
+  static _parseCompleteOfficePg(pInnerHTML) {
+    const officePgPieces = pInnerHTML.split(RosterHTMLParser.officeMatcher);
+    const offices = [];
+    let officeProps = {};
+    const resetOfficeProps = () => {
+      officeProps = Object.assign({},  {
+        phone: undefined,
+        address: [],
+        officeName: undefined,
+        orgName: undefined,
+        complete: false
+      });
+    };
+
+    resetOfficeProps();
+
+    let officePgPiece, orgName;
+    while (officePgPiece = officePgPieces.pop()) {
+      officeProps = RosterHTMLParser._parseOfficePgPieces(officePgPiece, officeProps);
+      if (officeProps.orgName) {
+        orgName = officeProps.orgName;
+      }
+      if (officeProps.complete) {
+        delete officeProps.complete;
+        offices.push(Object.assign({}, officeProps));
+        resetOfficeProps();
       }
     }
 
@@ -124,7 +129,7 @@ export default class RosterHTMLParser {
     const offices = [];
 
     const rosterDOM = document.createElement('html');
-    rosterDOM.innerHtml = RosterHTMLParser._sanitizeRosterHTML(rawRosterHTML);
+    rosterDOM.body.innerHtml = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
 
     const currentState = 'ALABAMA';
 

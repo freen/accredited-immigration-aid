@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 import RosterHTMLParser from './RosterHTMLParser';
 
 describe('RosterHTMLParser._parseCompleteOfficePg', () => {
@@ -174,7 +178,7 @@ La Crosse, WI 54601
 });
 
 describe('RosterHTMLParser.parse', () => {
-  test('integration', () => {
+  test('integration, no page break', () => {
     const fixturePdf2HtmlOutput = `
 <p>Birmingham
 </p>
@@ -226,20 +230,20 @@ Mobile, AL 36607
 (251) 455-6328
 </p>
 <p>10/27/17 02/13/26 Active
-</p>
-<p>Montgomery
-</p>
-<p>Catholic Social Services Archdiocese of Mobile 04/06/00 03/01/25 Active</p>
-<p/>
-</div>
-<div class="page"><p/>
-<p> 
-Montgomery Extension Office 
-4455 Narrow Lane Road
-Montgomery, AL 36116
-(334) 288-8890
-</p>
-`;
+</p>`;
+// <p>Montgomery
+// </p>
+// <p>Catholic Social Services Archdiocese of Mobile 04/06/00 03/01/25 Active</p>
+// <p/>
+// </div>
+// <div class="page"><p/>
+// <p> 
+// Montgomery Extension Office 
+// 4455 Narrow Lane Road
+// Montgomery, AL 36116
+// (334) 288-8890
+// </p>
+// `;
 
     const expectedResult = {
       ALABAMA: {
@@ -303,17 +307,17 @@ Montgomery, AL 36116
             phone: '(251) 455-6328'
           },
         ]
-        Montgomery: [
-          {
-            orgName: 'Catholic Social Services Archdiocese of Mobile',
-            officeName: 'Montgomery Extension Office',
-            address: [
-              '4455 Narrow Lane Road',
-              'Montgomery, AL 36116'
-            ],
-            phone: '(334) 288-8890'
-          }
-        ]
+        // Montgomery: [
+        //   {
+        //     orgName: 'Catholic Social Services Archdiocese of Mobile',
+        //     officeName: 'Montgomery Extension Office',
+        //     address: [
+        //       '4455 Narrow Lane Road',
+        //       'Montgomery, AL 36116'
+        //     ],
+        //     phone: '(334) 288-8890'
+        //   }
+        // ]
       }
     };
 
