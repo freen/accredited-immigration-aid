@@ -133,7 +133,7 @@ export default class RosterHTMLParser {
   }
 
   static parse(pdf2HtmlOutput) {
-    let currentState = 'ALABAMA', currentCity;
+    let currentState = 'ALABAMA', currentCity, parsedOffices;
     const offices = {[currentState]: {}};
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     const body = dom.window.document.querySelector('body');
@@ -145,14 +145,20 @@ export default class RosterHTMLParser {
       p = body.children[i];
       pgHTML = p.innerHTML;
 
-      if (RosterHTMLParser._isOfficePg(pgHTML)) {
-        offices.push(RosterHTMLParser._parseCompleteOfficePg(pgHTML));
-      } else if (RosterHTMLParser._pgHasActivePeriod(pgHTML)) {
-
-      } else { // It's a city name
-        currentCity = pgHTML;
+      if (currentCity) {
         offices[currentState][currentCity] ??= [];
       }
+
+      if (RosterHTMLParser._isOfficePg(pgHTML)) {
+        parsedOffices = RosterHTMLParser._parseCompleteOfficePg(pgHTML);
+        offices[currentState][currentCity] = offices[currentState][currentCity].concat(parsedOffices);
+      } else if (RosterHTMLParser._pgHasActivePeriod(pgHTML)) {
+        // do nothing, for now
+      } else { // It's a city name
+        currentCity = pgHTML.trim();
+      }
+
+      debugger;
 
       i++;
     }
