@@ -1,9 +1,24 @@
 import { JSDOM } from 'jsdom';
 
 export default class RosterHTMLParser {
+  static testNonEmptyString = (v) => (typeof v === 'string' && v.trim().length > 0);
+  static officePropValidators = {
+    phone: (v) => (RosterHTMLParser.matcherPhone.test(v)),
+    address: (v) => {
+      if (!Array.isArray(v)) {
+        return false;
+      }
+      const copyWithoutEmptyLines = v.filter(RosterHTMLParser.testNonEmptyString);
 
-  static officeMatcher = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
-  static activePeriodMatcher = /(\d{2}\/\d{2}\/\d{2} ){2}Active/;
+      return copyWithoutEmptyLines.length == v.length;
+    },
+    officeName: RosterHTMLParser.testNonEmptyString,
+    orgName: RosterHTMLParser.testNonEmptyString
+  };
+
+  static matcherOffice = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
+  static matcherActivePeriod = /(\d{2}\/\d{2}\/\d{2} ){2}Active/;
+  static matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
 
   static _sanitizeRosterHTML(rosterHTML) {
     rosterHTML = RosterHTMLParser._chopIrrelevantSections(rosterHTML);
@@ -43,45 +58,65 @@ export default class RosterHTMLParser {
   }
 
   static _pgHasActivePeriod(pInnerHTML) {
-    return pInnerHTML.match(RosterHTMLParser.activePeriodMatcher) != null;
+    return RosterHTMLParser.matcherActivePeriod.test(pInnerHTML);
   }
 
   static _isOfficePg(pInnerHTML) {
-    return pInnerHTML.match(RosterHTMLParser.officeMatcher) != null;
+    return RosterHTMLParser.matcherOffice.test(pInnerHTML);
   }
 
-  static _isOfficePgInfoComplete(pInnerHTML) {
+  // Where `offices` matches the return value of `_parseCompleteOfficePg`
+  static _isOfficePgComplete(offices) {
+    let errors = [];
+    const validators = RosterHTMLParser.officePropValidators;
 
+    offices.forEach((office, i) => {
+      for (const key of Object.keys(validators)) {
+        if (office.hasOwnProperty(key)) {
+          if (!validators[key](office[key])) {
+            errors[i] ??= {};
+            errors[i][key] = office[key];
+          }
+        } else {
+          errors[i][key] = '<undefined>';
+        }
+      }
+    })
+
+    return errors.length ? errors : true;
   }
 
   static _parseAddressAndPhone(addressAndPhone) {
-    const pieces = addressAndPhone.split("\n");
+    const pieces = addressAndPhone.split("\n").map((x) => x.trim()).filter((x) => x != '');
     const phone = pieces.pop();
-    const address = pieces.map((x) => x.trim()).filter((x) => x != '');
+    const address = pieces;
 
     return {
       address,
       phone
-    }
+    };
   }
 
   static _parseOfficePgPieces(officePgPiece, officeProps) {
     const matcherOfficeNameLine = /\sOffice$/;
-    const matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
     const trimTwoOrMoreWhitespaces = (str) => (str.replace(/\s{2,}/, ' '));
 
     // Current office object iteration is empty
     if (officeProps.phone == undefined) {
       // Current piece is an address-and-phone block
-      if (officePgPiece.match(matcherPhone)) {
+      if (officePgPiece.match(RosterHTMLParser.matcherPhone)) {
         const addressAndPhone = RosterHTMLParser._parseAddressAndPhone(officePgPiece)
         officeProps = Object.assign(officeProps, addressAndPhone);
+
         return officeProps;
       }
+
       // Finished processing offices, this must be the org name
       officeProps.orgName = trimTwoOrMoreWhitespaces(officePgPiece);
+
       return officeProps;
     }
+
     // Office name signals the end of the office chunk
     if (officePgPiece.match(matcherOfficeNameLine)) {
       officeProps.officeName = trimTwoOrMoreWhitespaces(officePgPiece);
@@ -89,11 +124,12 @@ export default class RosterHTMLParser {
     } else {
       console.warn(`Unexpected case, officePgPiece doesn't match office name: ${officePgPiece}`)
     }
+
     return officeProps;
   }
 
   static _parseCompleteOfficePg(pInnerHTML) {
-    const officePgPieces = pInnerHTML.split(RosterHTMLParser.officeMatcher);
+    const officePgPieces = pInnerHTML.split(RosterHTMLParser.matcherOffice);
     const offices = [];
     let officeProps = {};
     const resetOfficeProps = () => {
@@ -155,8 +191,6 @@ export default class RosterHTMLParser {
       } else { // It's a city name
         currentCity = pgHTML.trim();
       }
-
-      debugger;
 
       i++;
     }
