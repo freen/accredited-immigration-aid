@@ -108,6 +108,25 @@ Milwaukee, WI 53204
   });
 });
 
+describe('RosterHTMLParser._pgHasActivePeriod', () => {
+  test('returns true for pInnerHTML that contains active period', () => {
+    const fixturePgInnerHtml = "07/18/12 01/26/27 Active\n";
+
+    expect(RosterHTMLParser._pgHasActivePeriod(fixturePgInnerHtml)).toBe(true);
+  });
+
+  test('returns false for pInnerHTML that does not contain active period', () => {
+    const fixturePgInnerHtml = `Catholic Charities of the Diocese of Green Bay
+ 
+Menasha Extension Office 
+1475 Opportunity Way
+Menasha, WI 54952
+(920) 734-2601`;
+
+    expect(RosterHTMLParser._pgHasActivePeriod(fixturePgInnerHtml)).toBe(false);
+  });
+});
+
 describe('RosterHTMLParser._isOfficePgComplete', () => {
   test('returns true for complete extension office', () => {
     const fixturePgInnerHtml = `Catholic Charities of the Diocese of Green Bay

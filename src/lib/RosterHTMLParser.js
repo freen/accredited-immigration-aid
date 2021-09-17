@@ -3,6 +3,7 @@ import { JSDOM } from 'jsdom';
 export default class RosterHTMLParser {
 
   static officeMatcher = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
+  static activePeriodMatcher = /(\d{2}\/\d{2}\/\d{2} ){2}Active/;
 
   static _sanitizeRosterHTML(rosterHTML) {
     rosterHTML = RosterHTMLParser._chopIrrelevantSections(rosterHTML);
@@ -41,8 +42,12 @@ export default class RosterHTMLParser {
       .shift();
   }
 
-  static _isOfficePg(pInnerHTML) {
+  static _pgHasActivePeriod(pInnerHTML) {
+    return pInnerHTML.match(RosterHTMLParser.activePeriodMatcher) !== null;
+  }
 
+  static _isOfficePg(pInnerHTML) {
+    return pInnerHTML.match(RosterHTMLParser.officeMatcher);
   }
 
   static _isOfficePgInfoComplete(pInnerHTML) {
@@ -128,15 +133,29 @@ export default class RosterHTMLParser {
   }
 
   static parse(pdf2HtmlOutput) {
-    const offices = [];
+    let currentState = 'ALABAMA', currentCity;
+    const offices = {[currentState]: {}};
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     const body = dom.window.document.querySelector('body');
 
-    body.innerHtml = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
+    body.innerHTML = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
 
-    const currentState = 'ALABAMA';
+    let p, pgHTML, i = 0;
+    while (i < body.childElementCount - 1) {
+      p = body.children[i];
+      pgHTML = p.innerHTML;
 
-    debugger;
+      if (RosterHTMLParser._isOfficePg(pgHTML)) {
+        offices.push(RosterHTMLParser._parseCompleteOfficePg(pgHTML));
+      } else if (RosterHTMLParser._pgHasActivePeriod(pgHTML)) {
+
+      } else { // It's a city name
+        currentCity = pgHTML;
+        offices[currentState][currentCity] ??= [];
+      }
+
+      i++;
+    }
 
     return offices;
   }
