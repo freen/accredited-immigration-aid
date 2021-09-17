@@ -136,7 +136,7 @@ Menasha Extension Office
 Menasha, WI 54952
 (920) 734-2601`;
 
-    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(true);
+    expect(RosterHTMLParser._isOfficePgComplete(fixturePgInnerHtml)).toBe(true);
   });
 
   test('returns true for complete principal office', () => {
@@ -147,7 +147,7 @@ Principal Office
 La Crosse, WI 54601
 (608) 519-8024`;
 
-    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(true);
+    expect(RosterHTMLParser._isOfficePgComplete(fixturePgInnerHtml)).toBe(true);
   });
 
   test('returns false for name and address cut off after address1 line', () => {
@@ -156,7 +156,7 @@ La Crosse, WI 54601
 RCMA - Wimauma Extension Office
 14710 S Charlie Circle`;
 
-    expect(RosterHTMLParser._isOfficePg(fixturePgInnerHtml)).toBe(false);
+    expect(RosterHTMLParser._isOfficePgComplete(fixturePgInnerHtml)).toBe(false);
   });
 });
 

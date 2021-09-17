@@ -43,11 +43,11 @@ export default class RosterHTMLParser {
   }
 
   static _pgHasActivePeriod(pInnerHTML) {
-    return pInnerHTML.match(RosterHTMLParser.activePeriodMatcher) !== null;
+    return pInnerHTML.match(RosterHTMLParser.activePeriodMatcher) != null;
   }
 
   static _isOfficePg(pInnerHTML) {
-    return pInnerHTML.match(RosterHTMLParser.officeMatcher);
+    return pInnerHTML.match(RosterHTMLParser.officeMatcher) != null;
   }
 
   static _isOfficePgInfoComplete(pInnerHTML) {
@@ -68,9 +68,7 @@ export default class RosterHTMLParser {
   static _parseOfficePgPieces(officePgPiece, officeProps) {
     const matcherOfficeNameLine = /\sOffice$/;
     const matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
-    const trimTwoOrMoreWhitespaces = (str) => (
-      str.replace(/\s{2,}/, ' ')
-    );
+    const trimTwoOrMoreWhitespaces = (str) => (str.replace(/\s{2,}/, ' '));
 
     // Current office object iteration is empty
     if (officeProps.phone == undefined) {
