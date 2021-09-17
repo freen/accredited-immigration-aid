@@ -87,7 +87,10 @@ export default class RosterHTMLParser {
   }
 
   static _parseAddressAndPhone(addressAndPhone) {
-    const pieces = addressAndPhone.split("\n").map((x) => x.trim()).filter((x) => x != '');
+    const pieces = addressAndPhone
+      .split("\n")
+      .map((x) => x.trim())
+      .filter((x) => x != '');
     const phone = pieces.pop();
     const address = pieces;
 

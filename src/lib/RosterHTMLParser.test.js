@@ -295,16 +295,7 @@ Mobile, AL 36607
               'Dothan, AL 36302'
             ],
             phone: '(334) 793-3601'
-          },
-          {
-            orgName: 'Hispanic Interest Coalition of Alabama',
-            officeName: 'Principal Office',
-            address: [
-              '117 South Crest Drive',
-              'Birmingham, AL 35209'
-            ],
-            phone: '(205) 942-5505'
-          },
+          }
         ],
         Mobile: [
           {
