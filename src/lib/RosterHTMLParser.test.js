@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @jest-environment ./tests/custom-test-env
  */
 
 import RosterHTMLParser from './RosterHTMLParser';

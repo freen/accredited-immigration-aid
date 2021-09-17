@@ -1,3 +1,5 @@
+import { JSDOM } from 'jsdom';
+
 export default class RosterHTMLParser {
 
   static officeMatcher = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
@@ -127,9 +129,10 @@ export default class RosterHTMLParser {
 
   static parse(pdf2HtmlOutput) {
     const offices = [];
+    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
+    const body = dom.window.document.querySelector('body');
 
-    const rosterDOM = document.createElement('html');
-    rosterDOM.body.innerHtml = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
+    body.innerHtml = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
 
     const currentState = 'ALABAMA';
 

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import RosterParser from './lib/RosterParser';
+import RosterHTMLParser from './lib/RosterHTMLParser';
 import pdf2html from 'pdf2html';
 
 pdf2html.html('roster.pdf', (err, html) => {

@@ -3,15 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "devDependencies": {
-    "@babel/cli": "^7.15.4",
-    "@babel/core": "^7.15.5",
-    "@babel/node": "^7.15.4",
-    "@babel/preset-env": "^7.15.4",
-    "babel-plugin-source-map-support": "^2.1.3",
-    "jest": "^27.1.0",
-    "jsdom": "^17.0.0"
-  },
   "scripts": {
     "build": "babel src -d dist",
     "fetchRoster": "curl -o roster.pdf https://www.justice.gov/eoir/page/file/942306/download",
@@ -25,5 +16,15 @@
     "pdf-parse": "^1.1.1",
     "pdf2html": "^2.5.2",
     "source-map-support": "^0.5.19"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.15.4",
+    "@babel/core": "^7.15.5",
+    "@babel/node": "^7.15.4",
+    "@babel/preset-env": "^7.15.4",
+    "babel-plugin-source-map-support": "^2.1.3",
+    "jest": "^27.1.0",
+    "jest-environment-node": "^27.2.0",
+    "jsdom": "^17.0.0"
   }
 }
