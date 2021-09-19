@@ -196,8 +196,8 @@ La Crosse, WI 54601
   });
 });
 
-describe('RosterHTMLParser.parse', () => {
-  test('integration, no page break', () => {
+describe('RosterHTMLParser.parse integration tests', () => {
+  test('simple and easy path, no page breaks', () => {
     const fixturePdf2HtmlOutput = `
 <p>Birmingham
 </p>
@@ -250,19 +250,6 @@ Mobile, AL 36607
 </p>
 <p>10/27/17 02/13/26 Active
 </p>`;
-// <p>Montgomery
-// </p>
-// <p>Catholic Social Services Archdiocese of Mobile 04/06/00 03/01/25 Active</p>
-// <p/>
-// </div>
-// <div class="page"><p/>
-// <p> 
-// Montgomery Extension Office 
-// 4455 Narrow Lane Road
-// Montgomery, AL 36116
-// (334) 288-8890
-// </p>
-// `;
 
     const expectedResult = {
       ALABAMA: {
@@ -317,17 +304,145 @@ Mobile, AL 36607
             phone: '(251) 455-6328'
           },
         ]
-        // Montgomery: [
-        //   {
-        //     orgName: 'Catholic Social Services Archdiocese of Mobile',
-        //     officeName: 'Montgomery Extension Office',
-        //     address: [
-        //       '4455 Narrow Lane Road',
-        //       'Montgomery, AL 36116'
-        //     ],
-        //     phone: '(334) 288-8890'
-        //   }
-        // ]
+      }
+    };
+
+    expect(RosterHTMLParser.parse(fixturePdf2HtmlOutput))
+      .toEqual(expectedResult);
+
+  });
+
+  test('integration, no page break', () => {
+    const fixturePdf2HtmlOutput = `
+<p>Birmingham
+</p>
+<p>Hispanic Catholic Social Services
+ 
+Principal Office
+92 Oxmoor Road
+Birmingham, AL 35209
+(205) 987-4771
+</p>
+<p>07/18/12 01/26/27 Active
+</p>
+<p>Hispanic Interest Coalition of Alabama
+ 
+Principal Office
+117 South Crest Drive
+Birmingham, AL 35209
+(205) 942-5505
+</p>
+<p>10/10/08 06/08/26 Active
+</p>
+<p>Dothan
+</p>
+<p>Catholic Social Services Archdiocese of Mobile
+ 
+Dothan Extension Office
+557 West Main Street
+Dothan, AL 36302
+(334) 793-3601
+</p>
+<p>04/06/00 03/01/25 Active
+</p>
+<p>Mobile
+</p>
+<p>Catholic Social Services Archdiocese of Mobile
+ 
+Principal Office
+188 South Florida St.
+Mobile, AL 36606
+(251) 434-1550
+</p>
+<p>04/06/00 03/01/25 Active
+</p>
+<p>Gulf States Immigration Services
+ 
+Principal Office
+126 Mobile Street
+Mobile, AL 36607
+(251) 455-6328
+</p>
+<p>10/27/17 02/13/26 Active
+</p>
+<p>Montgomery
+</p>
+<p>Catholic Social Services Archdiocese of Mobile 04/06/00 03/01/25 Active</p>
+<p/>
+</div>
+<div class="page"><p/>
+<p> 
+Montgomery Extension Office 
+4455 Narrow Lane Road
+Montgomery, AL 36116
+(334) 288-8890
+</p>
+`;
+
+    const expectedResult = {
+      ALABAMA: {
+        Birmingham: [
+          {
+            orgName: 'Hispanic Catholic Social Services',
+            officeName: 'Principal Office',
+            address: [
+              '92 Oxmoor Road',
+              'Birmingham, AL 35209'
+            ],
+            phone: '(205) 987-4771'
+          },
+          {
+            orgName: 'Hispanic Interest Coalition of Alabama',
+            officeName: 'Principal Office',
+            address: [
+              '117 South Crest Drive',
+              'Birmingham, AL 35209'
+            ],
+            phone: '(205) 942-5505'
+          },
+        ],
+        Dothan: [
+          {
+            orgName: 'Catholic Social Services Archdiocese of Mobile',
+            officeName: 'Dothan Extension Office',
+            address: [
+              '557 West Main Street',
+              'Dothan, AL 36302'
+            ],
+            phone: '(334) 793-3601'
+          }
+        ],
+        Mobile: [
+          {
+            orgName: 'Catholic Social Services Archdiocese of Mobile',
+            officeName: 'Principal Office',
+            address: [
+              '188 South Florida St.',
+              'Mobile, AL 36606'
+            ],
+            phone: '(251) 434-1550'
+          },
+          {
+            orgName: 'Gulf States Immigration Services',
+            officeName: 'Principal Office',
+            address: [
+              '126 Mobile Street',
+              'Mobile, AL 36607'
+            ],
+            phone: '(251) 455-6328'
+          },
+        ],
+        Montgomery: [
+          {
+            orgName: 'Catholic Social Services Archdiocese of Mobile',
+            officeName: 'Montgomery Extension Office',
+            address: [
+              '4455 Narrow Lane Road',
+              'Montgomery, AL 36116'
+            ],
+            phone: '(334) 288-8890'
+          }
+        ]
       }
     };
 
@@ -526,24 +641,6 @@ Laramie, WY 82070
       .toBe(expectedResult);
   });
 });
-
-/**
- * Exhibit C - The delimiter for the PDF's "shift" from Orgs to Representatives data set
- */
-
-// <p>[ ]
-// Recognized[ ]
-// Organization
-// </p>
-// <p>Accredited[ ]
-// Representative
-// </p>
-// <p>Accreditation[ ]
-// Expiration Date
-// </p>
-// <p>Representative[ ]
-// Status
-// </p>
 
 /**
  * Exhibit D - An Org with 1 Office, whose address is split by a page-break
