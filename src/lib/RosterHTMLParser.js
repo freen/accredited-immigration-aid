@@ -48,12 +48,12 @@ export default class RosterHTMLParser {
   }
 
   static _chopIrrelevantSections(pInnerHTML) {
-    const transitionToOrgs = /<p>Organization\s+Status\s+<\/p>/;
-    const transitionToReps = /<p>(\s+)?Recognized(\s+)?Organization(\s+)?<\/p>(\s+)?<p>(\s+)?Accredited(\s+)?Representative(\s+)?<\/p>(\s+)?<p>Accreditation(\s+)?Expiration(\s+)?Date(\s+)?<\/p>(\s+)?<p>Representative(\s+)?Status(\s+)?<\/p>/;
+    const matcherTransitionToOrgs = /<p>Organization\s+Status\s+<\/p>/;
+    const matcherTransitionToReps = /<p>(\s+)?Recognized(\s+)?Organization(\s+)?<\/p>(\s+)?<p>(\s+)?Accredited(\s+)?Representative(\s+)?<\/p>(\s+)?<p>Accreditation(\s+)?Expiration(\s+)?Date(\s+)?<\/p>(\s+)?<p>Representative(\s+)?Status(\s+)?<\/p>/;
 
-    return pInnerHTML.split(transitionToOrgs)
+    return pInnerHTML.split(matcherTransitionToOrgs)
       .pop()
-      .split(transitionToReps)
+      .split(matcherTransitionToReps)
       .shift();
   }
 
@@ -169,6 +169,12 @@ export default class RosterHTMLParser {
     return offices;
   }
 
+  static _splitStates(html) {
+    const matcherStateTransition = /<p>(\s+)?Recognized(\s+)?Organization(\s+)?<\/p>(\s+)?<p>(\s+)?Date(\s+)?Recognized(\s+)?<\/p>(\s+)?<p>Recognition(\s+)?Expiration(\s+)?Date(\s+)?<\/p>(\s+)?<p>Organization(\s+)?Status(\s+)?<\/p>/;
+
+
+  }
+
   static parse(pdf2HtmlOutput) {
     let currentState = 'ALABAMA', currentCity, parsedOffices;
     const offices = {[currentState]: {}};
@@ -194,6 +200,16 @@ export default class RosterHTMLParser {
       } else { // It's a city name
         currentCity = pgHTML.trim();
       }
+
+      // new algo
+      // 0. walk backwards
+      // 1. if last line of pg is a phone number, begin officeProps draft with pgInnerHTML
+      // 2. if officeProps are not complete, lookahead to next pg; next pg:
+      //    a. if pgInnterHTML
+
+      // algo for parsing states initially
+      // a. split on state transition
+      // b. 
 
       i++;
     }
