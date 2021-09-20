@@ -312,7 +312,93 @@ Mobile, AL 36607
 
   });
 
-  test('integration, no page break', () => {
+  test('integration, no page break, two states', () => {
+      const fixturePdf2HtmlOutput = `
+<p>ALASKA
+Recognized 
+Organization
+</p>
+<p>Date 
+Recognized
+</p>
+<p>Recognition 
+Expiration Date
+</p>
+<p>Organization 
+Status 
+</p>
+<p>Anchorage
+</p>
+<p>Catholic Social Services Refugee Assistance and 
+Immigration Services
+ 
+Principal Office
+3710 E. 20th Avenue
+Anchorage, AK 99508
+(907) 222-7341
+</p>
+<p>01/03/95 05/03/25 Active
+</p>
+<p>Return to the top of the page
+</p>
+<p>ARIZONA
+Recognized 
+Organization
+</p>
+<p>Date 
+Recognized
+</p>
+<p>Recognition 
+Expiration Date
+</p>
+<p>Organization 
+Status 
+</p>
+<p>Glendale
+</p>
+<p>International Rescue Committee, Inc.
+ 
+IRC - Phoenix Extension Office
+4425 West Olive Avenue, Suite 400
+Glendale, AZ 85302
+(602) 433-2440
+</p>
+<p>02/23/96 11/27/25 Active
+</p>
+`;
+
+    expect(RosterHTMLParser.parse(fixturePdf2HtmlOutput))
+      .toBe({
+        ALASKA: {
+          Anchorage: [
+            {
+              orgName: 'Catholic Social Services Refugee Assistance and Immigration Services',
+              officeName: 'Principal Office',
+              address: [
+                '3710 E. 20th Avenue',
+                'Anchorage, AK 99508'
+              ],
+              phone: '(907) 222-7341'
+            }
+          ]
+        },
+        ARIZONA: {
+          Glendale: [
+            {
+              orgName: 'International Rescue Committee, Inc.',
+              officeName: 'IRC - Phoenix Extension Office',
+              address: [
+                '4425 West Olive Avenue, Suite 400',
+                'Glendale, AZ 85302'
+              ],
+              phone: '(602) 433-2440'
+            }
+          ]
+        }
+      });
+  });
+
+  test('integration, has page break, one state', () => {
     const fixturePdf2HtmlOutput = `
 <p>Birmingham
 </p>
@@ -507,8 +593,8 @@ Chicago, IL 60640
 });
 
 describe('RosterHTMLParser._splitStates', () => {
-  test('splits sanitized pdf2html output into states', () => {
-      const fixturePartialPdf2HtmlOutput = `
+  test('splits two states into object', () => {
+      const fixturePdf2HtmlOutput = `
 <p>ALASKA
 Recognized 
 Organization
@@ -562,34 +648,33 @@ Glendale, AZ 85302
 </p>
 `;
 
-    expect(RosterHTMLParser._splitStates(fixturePartialPdf2HtmlOutput))
-      .toBe({
-        ALASKA: {
-          Anchorage: [
-            {
-              orgName: 'Catholic Social Services Refugee Assistance and Immigration Services',
-              officeName: 'Principal Office',
-              address: [
-                '3710 E. 20th Avenue',
-                'Anchorage, AK 99508'
-              ],
-              phone: '(907) 222-7341'
-            }
-          ]
-        },
-        ARIZONA: {
-          Glendale: [
-            {
-              orgName: 'International Rescue Committee, Inc.',
-              officeName: 'IRC - Phoenix Extension Office',
-              address: [
-                '4425 West Olive Avenue, Suite 400',
-                'Glendale, AZ 85302'
-              ],
-              phone: '(602) 433-2440'
-            }
-          ]
-        }
+    expect(RosterHTMLParser._splitStates(fixturePdf2HtmlOutput))
+      .toEqual({
+        ALASKA: `<p>Anchorage
+</p>
+<p>Catholic Social Services Refugee Assistance and 
+Immigration Services
+ 
+Principal Office
+3710 E. 20th Avenue
+Anchorage, AK 99508
+(907) 222-7341
+</p>
+<p>01/03/95 05/03/25 Active
+</p>
+<p>Return to the top of the page
+</p>`,
+        ARIZONA: `<p>Glendale
+</p>
+<p>International Rescue Committee, Inc.
+ 
+IRC - Phoenix Extension Office
+4425 West Olive Avenue, Suite 400
+Glendale, AZ 85302
+(602) 433-2440
+</p>
+<p>02/23/96 11/27/25 Active
+</p>`
       });
   });
 });

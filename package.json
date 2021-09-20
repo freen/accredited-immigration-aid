@@ -13,6 +13,7 @@
   "author": "J. Daniel Bickett",
   "license": "ISC",
   "dependencies": {
+    "array.chunk": "^1.1.0",
     "pdf-parse": "^1.1.1",
     "pdf2html": "^2.5.2",
     "source-map-support": "^0.5.19"

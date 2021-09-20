@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom';
+import chunks from 'array.chunk';
 
 export default class RosterHTMLParser {
   static testNonEmptyString = (v) => (typeof v === 'string' && v.trim().length > 0);
@@ -51,10 +52,11 @@ export default class RosterHTMLParser {
     const matcherTransitionToOrgs = /<p>Organization\s+Status\s+<\/p>/;
     const matcherTransitionToReps = /<p>(\s+)?Recognized(\s+)?Organization(\s+)?<\/p>(\s+)?<p>(\s+)?Accredited(\s+)?Representative(\s+)?<\/p>(\s+)?<p>Accreditation(\s+)?Expiration(\s+)?Date(\s+)?<\/p>(\s+)?<p>Representative(\s+)?Status(\s+)?<\/p>/;
 
-    return pInnerHTML.split(matcherTransitionToOrgs)
-      .pop()
+    return pInnerHTML
+      .split(matcherTransitionToOrgs)
+      .pop() // Remove lower section
       .split(matcherTransitionToReps)
-      .shift();
+      .shift(); // Remove upper section
   }
 
   static _pgHasActivePeriod(pInnerHTML) {
@@ -169,19 +171,33 @@ export default class RosterHTMLParser {
     return offices;
   }
 
-  static _splitStates(html) {
-    const matcherStateTransition = /<p>(\s+)?Recognized(\s+)?Organization(\s+)?<\/p>(\s+)?<p>(\s+)?Date(\s+)?Recognized(\s+)?<\/p>(\s+)?<p>Recognition(\s+)?Expiration(\s+)?Date(\s+)?<\/p>(\s+)?<p>Organization(\s+)?Status(\s+)?<\/p>/;
+  static _splitStates(partialPdf2HtmlOutput) {
+    const states = {};
+    const matcherStateTransition = /<p>(?<State>[\w\s]+)Recognized(?:\s+)?Organization(?:\s+)?<\/p>(?:\s+)?<p>(?:\s+)?Date(?:\s+)?Recognized(?:\s+)?<\/p>(?:\s+)?<p>Recognition(?:\s+)?Expiration(?:\s+)?Date(?:\s+)?<\/p>(?:\s+)?<p>Organization(?:\s+)?Status(?:\s+)?<\/p>/;
+    let pieces =  partialPdf2HtmlOutput.split(matcherStateTransition)
+      .map((x) => x.trim())
+      .filter((x) => x != '');
 
+    pieces = chunks(pieces, 2);
+    let state, html;
 
+    for (const piece of pieces) {
+      [state, html] = piece;
+      states[state] = html;
+    }
+
+    return states;
   }
 
   static parse(pdf2HtmlOutput) {
-    let currentState = 'ALABAMA', currentCity, parsedOffices;
-    const offices = {[currentState]: {}};
+    let currentState = '', currentCity = '', parsedOffices = [];
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     const body = dom.window.document.querySelector('body');
 
-    body.innerHTML = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
+    pdf2HtmlOutput = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
+    const states = RosterHTMLParser._splitStates(pdf2HtmlOutput);
+
+
 
     let p, pgHTML, i = 0;
     while (i < body.childElementCount - 1) {
