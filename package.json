@@ -9,7 +9,7 @@
     "start": "npm run build && node dist/generateRosterJSON.js",
     "test": "npx jest",
     "test:debug": "node --inspect node_modules/.bin/jest --runInBand",
-    "installPrecommit": "echo \"npx jest\" > .git/hooks/pre-commit && c"
+    "installPrecommit": "echo \"npx jest\" > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
   },
   "author": "J. Daniel Bickett",
   "license": "ISC",
