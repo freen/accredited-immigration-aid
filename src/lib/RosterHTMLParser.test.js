@@ -592,6 +592,33 @@ Chicago, IL 60640
   });
 });
 
+describe('RosterHTMLParser._lastLineIsPhoneNumber', () => {
+  test('returns true when last line of text is phone number', () => {
+    const fixturePgInnerHtml = `Easy Solution Consultants, Inc. (ESC, Inc)
+ 
+Principal Office
+4554 N. Broadway Street
+Suite # 223
+Chicago, IL 60640
+(773) 769-2380`;
+
+    expect(RosterHTMLParser._lastLineIsPhoneNumber(fixturePgInnerHtml))
+      .toBe(true);
+  });
+
+  test('returns false when last line of text is not phone number', () => {
+    const fixturePgInnerHtml = `Easy Solution Consultants, Inc. (ESC, Inc)
+ 
+Principal Office
+4554 N. Broadway Street
+Suite # 223
+Chicago, IL 60640`;
+
+    expect(RosterHTMLParser._lastLineIsPhoneNumber(fixturePgInnerHtml))
+      .toBe(false);
+  });
+});
+
 describe('RosterHTMLParser._splitStates', () => {
   test('splits two states into object', () => {
       const fixturePdf2HtmlOutput = `

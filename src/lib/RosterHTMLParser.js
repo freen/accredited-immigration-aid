@@ -67,26 +67,44 @@ export default class RosterHTMLParser {
     return RosterHTMLParser.matcherOffice.test(pInnerHTML);
   }
 
-  // Where `offices` matches the return value of `_parseCompleteOfficePg`
-  static _isOfficePgComplete(offices) {
-    let errors = [];
-    const validators = RosterHTMLParser.officePropValidators;
+  // // Where `offices` matches the return value of `_parseCompleteOfficePg`
+  // static _isOfficePgComplete(offices) {
+  //   let errors = [];
+  //   const validators = RosterHTMLParser.officePropValidators;
 
-    offices.forEach((office, i) => {
-      for (const key of Object.keys(validators)) {
-        if (office.hasOwnProperty(key)) {
-          if (!validators[key](office[key])) {
-            errors[i] ??= {};
-            errors[i][key] = office[key];
-          }
-        } else {
-          errors[i][key] = '<undefined>';
-        }
-      }
-    })
+  //   offices.forEach((office, i) => {
+  //     for (const key of Object.keys(validators)) {
+  //       if (office.hasOwnProperty(key)) {
+  //         if (!validators[key](office[key])) {
+  //           errors[i] ??= {};
+  //           errors[i][key] = office[key];
+  //         }
+  //       } else {
+  //         errors[i][key] = '<undefined>';
+  //       }
+  //     }
+  //   })
 
-    return errors.length ? errors : true;
-  }
+  //   return errors.length ? errors : true;
+  // }
+
+  // // Where `office` matches the return value of one element of `_parseCompleteOfficePg`
+  // static _isOfficeComplete(office) {
+  //   let errors = {};
+  //   const validators = RosterHTMLParser.officePropValidators;
+
+  //   for (const key of Object.keys(validators)) {
+  //     if (office.hasOwnProperty(key)) {
+  //       if (!validators[key](office[key])) {
+  //         errors[key] = office[key];
+  //       }
+  //     } else {
+  //       errors[key] = '<undefined>';
+  //     }
+  //   }
+
+  //   return Object.keys(errors).length ? errors : true;
+  // }
 
   static _parseAddressAndPhone(addressAndPhone) {
     const pieces = addressAndPhone
@@ -189,48 +207,83 @@ export default class RosterHTMLParser {
     return states;
   }
 
-  static parse(pdf2HtmlOutput) {
-    let currentState = '', currentCity = '', parsedOffices = [];
+  static _lastLineIsPhoneNumber(pgHTML) {
+    const lastLine = pgHTML
+      .split("\n")
+      .map((x) => x.trim())
+      .filter((x) => x != '')
+      .pop();
+
+    return RosterHTMLParser.matcherPhone.test(lastLine);
+  }
+
+  static _parseStateSequence(stateHtml) {
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
     const body = dom.window.document.querySelector('body');
+    const offices = {};
 
-    pdf2HtmlOutput = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
-    const states = RosterHTMLParser._splitStates(pdf2HtmlOutput);
+    let currentCity = '',
+      parsedOffices = [],
+      i = body.childElementCount - 1,
+      hasOrgName = false,
+      parsedOffice, p, pgHTML = '';
 
-
-
-    let p, pgHTML, i = 0;
-    while (i < body.childElementCount - 1) {
+    while (i >= 0) {
       p = body.children[i];
       pgHTML = p.innerHTML;
 
-      if (currentCity) {
-        offices[currentState][currentCity] ??= [];
+      if (currentCity != '') {
+        offices[currentCity] ??= [];
       }
 
-      if (RosterHTMLParser._isOfficePg(pgHTML)) {
-        parsedOffices = RosterHTMLParser._parseCompleteOfficePg(pgHTML);
-        offices[currentState][currentCity] = offices[currentState][currentCity].concat(parsedOffices);
+      if (RosterHTMLParser._lastLineIsPhoneNumber(pgHTML)) {
+        // TODO: break this block into separate method
+
+        while (true) {
+          parsedOffices = RosterHTMLParser._parseCompleteOfficePg(pgHTML);
+
+          // If orgName is present (whether 1 or more offices,) we have all our info
+          // b/c the orgName comes last
+          hasOrgName = parsedOffices.some((v) => v?.orgName !== undefined);
+
+          if (hasOrgName || i == 0) {
+            offices[currentCity] = offices[currentCity].concat(parsedOffices);
+
+            if(i == 0) { // This shouldn't happen
+              console.warn("Hit i = 0 without hasOrgName");
+            }
+
+            break;
+          }
+
+          i--;
+          p = body.children[i];
+          pgHTML = `${p.innerHTML}${pgHTML}`;
+        }
+
       } else if (RosterHTMLParser._pgHasActivePeriod(pgHTML)) {
         // do nothing, for now
+      } else if (pgHTML.trim() == "Return to the top of the page") {
+        // do nothing
       } else { // It's a city name
         currentCity = pgHTML.trim();
       }
 
-      // new algo
-      // 0. walk backwards
-      // 1. if last line of pg is a phone number, begin officeProps draft with pgInnerHTML
-      // 2. if officeProps are not complete, lookahead to next pg; next pg:
-      //    a. if pgInnterHTML
-
-      // algo for parsing states initially
-      // a. split on state transition
-      // b. 
-
-      i++;
+      i--;
     }
 
     return offices;
+  }
+
+  static parse(pdf2HtmlOutput) {
+    pdf2HtmlOutput = RosterHTMLParser._sanitizeRosterHTML(pdf2HtmlOutput);
+    const states = RosterHTMLParser._splitStates(pdf2HtmlOutput);
+
+    for (const key of Object.keys(states)) {
+      states[key] = RosterHTMLParser._parseStateSequence(states[key]);
+    }
+
+    return states;
   }
 }
 
