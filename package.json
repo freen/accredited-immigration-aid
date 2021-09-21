@@ -8,7 +8,8 @@
     "fetchRoster": "curl -o roster.pdf https://www.justice.gov/eoir/page/file/942306/download",
     "start": "npm run build && node dist/generateRosterJSON.js",
     "test": "npx jest",
-    "test:debug": "node --inspect node_modules/.bin/jest --runInBand"
+    "test:debug": "node --inspect node_modules/.bin/jest --runInBand",
+    "installPrecommit": "echo \"npx jest\" > .git/hooks/pre-commit && c"
   },
   "author": "J. Daniel Bickett",
   "license": "ISC",
