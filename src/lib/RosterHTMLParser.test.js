@@ -821,6 +821,19 @@ Status
 </p>
 `;
     const expectedResult = `
+<p>ALABAMA
+Recognized 
+Organization
+</p>
+<p>Date 
+Recognized
+</p>
+<p>Recognition 
+Expiration Date
+</p>
+<p>Organization 
+Status 
+</p>
 <p>Laramie
 </p>
 <p>Wyoming Coalition Against Domestic Violence and Sexual 

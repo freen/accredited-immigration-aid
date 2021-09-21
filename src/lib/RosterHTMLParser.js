@@ -49,7 +49,7 @@ export default class RosterHTMLParser {
   }
 
   static _chopIrrelevantSections(pInnerHTML) {
-    const matcherTransitionToOrgs = /<p>Organization\s+Status\s+<\/p>/;
+    const matcherTransitionToOrgs = /Wisconsin\s+?\|\s+?Wyoming\s+?\|\s+?\<\/p\>\s+?\<p\>\s+?\<\/p\>/;
     const matcherTransitionToReps = /<p>(\s+)?Recognized(\s+)?Organization(\s+)?<\/p>(\s+)?<p>(\s+)?Accredited(\s+)?Representative(\s+)?<\/p>(\s+)?<p>Accreditation(\s+)?Expiration(\s+)?Date(\s+)?<\/p>(\s+)?<p>Representative(\s+)?Status(\s+)?<\/p>/;
 
     return pInnerHTML
@@ -192,12 +192,16 @@ export default class RosterHTMLParser {
   static _splitStates(partialPdf2HtmlOutput) {
     const states = {};
     const matcherStateTransition = /<p>(?<State>[\w\s]+)Recognized(?:\s+)?Organization(?:\s+)?<\/p>(?:\s+)?<p>(?:\s+)?Date(?:\s+)?Recognized(?:\s+)?<\/p>(?:\s+)?<p>Recognition(?:\s+)?Expiration(?:\s+)?Date(?:\s+)?<\/p>(?:\s+)?<p>Organization(?:\s+)?Status(?:\s+)?<\/p>/;
-    let pieces =  partialPdf2HtmlOutput.split(matcherStateTransition)
+    let pieces =  partialPdf2HtmlOutput
+      .trim()
+      .split(matcherStateTransition)
       .map((x) => x.trim())
       .filter((x) => x != '');
 
     pieces = chunks(pieces, 2);
     let state, html;
+
+    debugger;
 
     for (const piece of pieces) {
       [state, html] = piece;
@@ -258,7 +262,7 @@ export default class RosterHTMLParser {
 
           i--;
           p = body.children[i];
-          pgHTML = `${p.innerHTML}${pgHTML}`;
+          pgHTML = `${p.innerHTML}\n${pgHTML}`;
         }
 
       } else if (RosterHTMLParser._pgHasActivePeriod(pgHTML)) {
@@ -280,6 +284,7 @@ export default class RosterHTMLParser {
     const states = RosterHTMLParser._splitStates(pdf2HtmlOutput);
 
     for (const key of Object.keys(states)) {
+      debugger;
       states[key] = RosterHTMLParser._parseStateSequence(states[key]);
     }
 
