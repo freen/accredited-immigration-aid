@@ -3,25 +3,11 @@ import chunks from 'array.chunk';
 
 const CURRENT_CITY_PENDING = 'CURRENT_CITY_PENDING';
 
+const matcherOffice = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
+const matcherActivePeriod = /(\d{2}\/\d{2}\/\d{2} ){2}Active/;
+const matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
+
 export default class RosterHTMLParser {
-  static testNonEmptyString = (v) => (typeof v === 'string' && v.trim().length > 0);
-  static officePropValidators = {
-    phone: (v) => (RosterHTMLParser.matcherPhone.test(v)),
-    address: (v) => {
-      if (!Array.isArray(v)) {
-        return false;
-      }
-      const copyWithoutEmptyLines = v.filter(RosterHTMLParser.testNonEmptyString);
-
-      return copyWithoutEmptyLines.length == v.length;
-    },
-    officeName: RosterHTMLParser.testNonEmptyString,
-    orgName: RosterHTMLParser.testNonEmptyString
-  };
-
-  static matcherOffice = /\s{2,}(Principal\s+Office|[\S ]+\s+Extension\s+Office)/;
-  static matcherActivePeriod = /(\d{2}\/\d{2}\/\d{2} ){2}Active/;
-  static matcherPhone = /\(\d{3}\) \d{3}-\d{4}/;
 
   static _sanitizeRosterHTML(rosterHTML) {
     rosterHTML = RosterHTMLParser._chopIrrelevantSections(rosterHTML);
@@ -62,51 +48,12 @@ export default class RosterHTMLParser {
   }
 
   static _pgHasActivePeriod(pInnerHTML) {
-    return RosterHTMLParser.matcherActivePeriod.test(pInnerHTML);
+    return matcherActivePeriod.test(pInnerHTML);
   }
 
   static _isOfficePg(pInnerHTML) {
-    return RosterHTMLParser.matcherOffice.test(pInnerHTML);
+    return matcherOffice.test(pInnerHTML);
   }
-
-  // // Where `offices` matches the return value of `_parseCompleteOfficePg`
-  // static _isOfficePgComplete(offices) {
-  //   let errors = [];
-  //   const validators = RosterHTMLParser.officePropValidators;
-
-  //   offices.forEach((office, i) => {
-  //     for (const key of Object.keys(validators)) {
-  //       if (office.hasOwnProperty(key)) {
-  //         if (!validators[key](office[key])) {
-  //           errors[i] ??= {};
-  //           errors[i][key] = office[key];
-  //         }
-  //       } else {
-  //         errors[i][key] = '<undefined>';
-  //       }
-  //     }
-  //   })
-
-  //   return errors.length ? errors : true;
-  // }
-
-  // // Where `office` matches the return value of one element of `_parseCompleteOfficePg`
-  // static _isOfficeComplete(office) {
-  //   let errors = {};
-  //   const validators = RosterHTMLParser.officePropValidators;
-
-  //   for (const key of Object.keys(validators)) {
-  //     if (office.hasOwnProperty(key)) {
-  //       if (!validators[key](office[key])) {
-  //         errors[key] = office[key];
-  //       }
-  //     } else {
-  //       errors[key] = '<undefined>';
-  //     }
-  //   }
-
-  //   return Object.keys(errors).length ? errors : true;
-  // }
 
   static _parseAddressAndPhone(addressAndPhone) {
     const pieces = addressAndPhone
@@ -129,7 +76,7 @@ export default class RosterHTMLParser {
     // Current office object iteration is empty
     if (officeProps.phone == undefined) {
       // Current piece is an address-and-phone block
-      if (officePgPiece.match(RosterHTMLParser.matcherPhone)) {
+      if (officePgPiece.match(matcherPhone)) {
         const addressAndPhone = RosterHTMLParser._parseAddressAndPhone(officePgPiece)
         officeProps = Object.assign(officeProps, addressAndPhone);
 
@@ -154,7 +101,7 @@ export default class RosterHTMLParser {
   }
 
   static _parseCompleteOfficePg(pInnerHTML) {
-    const officePgPieces = pInnerHTML.split(RosterHTMLParser.matcherOffice);
+    const officePgPieces = pInnerHTML.split(matcherOffice);
     const offices = [];
     let officeProps = {};
     const resetOfficeProps = () => {
@@ -218,7 +165,18 @@ export default class RosterHTMLParser {
       .filter((x) => x != '')
       .pop();
 
-    return RosterHTMLParser.matcherPhone.test(lastLine);
+    return matcherPhone.test(lastLine);
+  }
+
+  // If orgName is present (whether 1 or more offices,) we have all our info
+  // b/c the orgName comes last when parsing in reverse
+  static _officesFullyParsed(parsedOffices) {
+    return parsedOffices.some((v) => v?.orgName !== undefined);
+  }
+
+  static _skipPg(pgHTML) {
+    return RosterHTMLParser._pgHasActivePeriod(pgHTML) ||
+      pgHTML.trim() == "Return to the top of the page";
   }
 
   static _parseStateSequence(stateHtml) {
@@ -240,16 +198,11 @@ export default class RosterHTMLParser {
       offices[currentCity] ??= [];
 
       if (RosterHTMLParser._lastLineIsPhoneNumber(pgHTML)) {
-        // TODO: break this block into separate method
 
         while (true) {
           parsedOffices = RosterHTMLParser._parseCompleteOfficePg(pgHTML);
 
-          // If orgName is present (whether 1 or more offices,) we have all our info
-          // b/c the orgName comes last
-          hasOrgName = parsedOffices.some((v) => v?.orgName !== undefined);
-
-          if (hasOrgName || i == 0) {
+          if (RosterHTMLParser._officesFullyParsed(parsedOffices) || i == 0) {
             offices[currentCity] = offices[currentCity].concat(parsedOffices);
 
             if(i == 0) { // This shouldn't happen
@@ -259,14 +212,19 @@ export default class RosterHTMLParser {
             break;
           }
 
-          i--;
-          p = body.children[i];
+          while (true) {
+            i--;
+            p = body.children[i];
+
+            if (!RosterHTMLParser._skipPg(p.innerHTML)) {
+              break;
+            }
+          }
+
           pgHTML = `${p.innerHTML}\n${pgHTML}`;
         }
 
-      } else if (RosterHTMLParser._pgHasActivePeriod(pgHTML)) {
-        // do nothing, for now
-      } else if (pgHTML.trim() == "Return to the top of the page") {
+      } else if (RosterHTMLParser._skipPg(pgHTML)) {
         // do nothing
       } else { // It's a city name
         newCity = pgHTML.trim();
@@ -296,31 +254,6 @@ export default class RosterHTMLParser {
     return states;
   }
 }
-
-/**
- * Exhibit D - An Org with 1 Office, whose address is split by a page-break
- */
-
-// <p>02/14/00 12/14/24 Active
-// </p>
-// <p>Redlands Christian Migrant Association, Inc.
-// [ ]
-// RCMA - Wimauma Extension Office
-// 14710 S Charlie Circle
-// </p>
-// <p>10/20/15 10/26/26 Active</p>
-// <p/>
-// </div>
-// <div class="page"><p/>
-// <p>Wimauma, FL 33598
-// (813) 634-1723
-// </p>
-// <p>Return to the top of the page
-// </p>
-// <p>GEORGIA
-// Recognized[ ]
-// Organization
-// </p>
 
 // Theoretically, post strip page breaks op:
 

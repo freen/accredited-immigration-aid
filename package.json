@@ -7,7 +7,7 @@
     "build": "babel src -d dist",
     "fetchRoster": "curl -o roster.pdf https://www.justice.gov/eoir/page/file/942306/download",
     "start": "npm run build && node dist/generateRosterJSON.js",
-    "test": "jest",
+    "test": "npx jest",
     "test:debug": "node --inspect node_modules/.bin/jest --runInBand"
   },
   "author": "J. Daniel Bickett",
@@ -27,5 +27,10 @@
     "jest": "^27.1.0",
     "jest-environment-node": "^27.2.0",
     "jsdom": "^17.0.0"
+  },
+  "jest": {
+    "testPathIgnorePatterns" : [
+      "<rootDir>/dist"
+    ]
   }
 }

@@ -127,39 +127,6 @@ Menasha, WI 54952
   });
 });
 
-describe('RosterHTMLParser._isOfficePgComplete', () => {
-  test('returns true for complete extension office', () => {
-    const fixturePgInnerHtml = `Catholic Charities of the Diocese of Green Bay
- 
-Menasha Extension Office 
-1475 Opportunity Way
-Menasha, WI 54952
-(920) 734-2601`;
-
-    expect(RosterHTMLParser._isOfficePgComplete(RosterHTMLParser._parseCompleteOfficePg(fixturePgInnerHtml))).toBe(true);
-  });
-
-  test('returns true for complete principal office', () => {
-    const fixturePgInnerHtml = `Catholic Charities of the Diocese of La Crosse
- 
-Principal Office
-508 S. 5th St.
-La Crosse, WI 54601
-(608) 519-8024`;
-
-    expect(RosterHTMLParser._isOfficePgComplete(RosterHTMLParser._parseCompleteOfficePg(fixturePgInnerHtml))).toBe(true);
-  });
-
-  test('returns false for name and address cut off after address1 line', () => {
-    const fixturePgInnerHtml = `Redlands Christian Migrant Association, Inc.
- 
-RCMA - Wimauma Extension Office
-14710 S Charlie Circle`;
-
-    expect(RosterHTMLParser._isOfficePgComplete(RosterHTMLParser._parseCompleteOfficePg(fixturePgInnerHtml))).toBe(false);
-  });
-});
-
 describe('RosterHTMLParser._isOfficePg', () => {
   test('returns true for extension office', () => {
     const fixturePgInnerHtml = `Catholic Charities of the Diocese of Green Bay
@@ -199,6 +166,19 @@ La Crosse, WI 54601
 describe('RosterHTMLParser.parse integration tests', () => {
   test('simple and easy path, no page breaks', () => {
     const fixturePdf2HtmlOutput = `
+<p>ALABAMA
+Recognized 
+Organization
+</p>
+<p>Date 
+Recognized
+</p>
+<p>Recognition 
+Expiration Date
+</p>
+<p>Organization 
+Status 
+</p>
 <p>Birmingham
 </p>
 <p>Hispanic Catholic Social Services
@@ -368,7 +348,7 @@ Glendale, AZ 85302
 `;
 
     expect(RosterHTMLParser.parse(fixturePdf2HtmlOutput))
-      .toBe({
+      .toEqual({
         ALASKA: {
           Anchorage: [
             {
@@ -400,6 +380,19 @@ Glendale, AZ 85302
 
   test('integration, has page break, one state', () => {
     const fixturePdf2HtmlOutput = `
+<p>ALABAMA
+Recognized 
+Organization
+</p>
+<p>Date 
+Recognized
+</p>
+<p>Recognition 
+Expiration Date
+</p>
+<p>Organization 
+Status 
+</p>
 <p>Birmingham
 </p>
 <p>Hispanic Catholic Social Services
@@ -535,6 +528,47 @@ Montgomery, AL 36116
     expect(RosterHTMLParser.parse(fixturePdf2HtmlOutput))
       .toEqual(expectedResult);
 
+  });
+});
+
+
+describe('RosterHTMLParser._parseStateSequence', () => {
+  test('has page-break in the middle of the address', () => {
+    const fixturePdf2HtmlOutput = `
+<p>Wimauma</p>
+<p>Redlands Christian Migrant Association, Inc.
+ 
+RCMA - Wimauma Extension Office
+14710 S Charlie Circle
+</p>
+<p>10/20/15 10/26/26 Active</p>
+<p/>
+</div>
+<div class="page"><p/>
+<p>Wimauma, FL 33598
+(813) 634-1723
+</p>
+<p>Return to the top of the page
+</p>`;
+
+    const expectedResult = {
+      Wimauma: [
+          {
+            orgName: 'Redlands Christian Migrant Association, Inc.',
+            officeName: 'RCMA - Wimauma Extension Office',
+            address: [
+              '14710 S Charlie Circle',
+              'Wimauma, FL 33598'
+            ],
+            phone: '(813) 634-1723'
+          }
+        ]
+    };
+
+    const stripped = RosterHTMLParser._stripPageBreaks(fixturePdf2HtmlOutput);
+
+    expect(RosterHTMLParser._parseStateSequence(stripped))
+      .toEqual(expectedResult);
   });
 });
 
