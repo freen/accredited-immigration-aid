@@ -1,6 +1,8 @@
 import { JSDOM } from 'jsdom';
 import chunks from 'array.chunk';
 
+const CURRENT_CITY_PENDING = 'CURRENT_CITY_PENDING';
+
 export default class RosterHTMLParser {
   static testNonEmptyString = (v) => (typeof v === 'string' && v.trim().length > 0);
   static officePropValidators = {
@@ -201,8 +203,6 @@ export default class RosterHTMLParser {
     pieces = chunks(pieces, 2);
     let state, html;
 
-    debugger;
-
     for (const piece of pieces) {
       [state, html] = piece;
       states[state] = html;
@@ -226,19 +226,18 @@ export default class RosterHTMLParser {
     const body = dom.window.document.querySelector('body');
     const offices = {};
 
-    let currentCity = '',
+    body.innerHTML = stateHtml;
+
+    let currentCity = CURRENT_CITY_PENDING,
       parsedOffices = [],
       i = body.childElementCount - 1,
       hasOrgName = false,
-      parsedOffice, p, pgHTML = '';
+      parsedOffice, p, newCity, pgHTML = '';
 
     while (i >= 0) {
       p = body.children[i];
       pgHTML = p.innerHTML;
-
-      if (currentCity != '') {
-        offices[currentCity] ??= [];
-      }
+      offices[currentCity] ??= [];
 
       if (RosterHTMLParser._lastLineIsPhoneNumber(pgHTML)) {
         // TODO: break this block into separate method
@@ -270,7 +269,14 @@ export default class RosterHTMLParser {
       } else if (pgHTML.trim() == "Return to the top of the page") {
         // do nothing
       } else { // It's a city name
-        currentCity = pgHTML.trim();
+        newCity = pgHTML.trim();
+
+        if (currentCity == CURRENT_CITY_PENDING) {
+          offices[newCity] = offices[currentCity];
+          delete offices[currentCity];
+        }
+
+        currentCity = newCity;
       }
 
       i--;
@@ -284,7 +290,6 @@ export default class RosterHTMLParser {
     const states = RosterHTMLParser._splitStates(pdf2HtmlOutput);
 
     for (const key of Object.keys(states)) {
-      debugger;
       states[key] = RosterHTMLParser._parseStateSequence(states[key]);
     }
 
