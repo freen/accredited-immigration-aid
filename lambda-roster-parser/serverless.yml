@@ -1,0 +1,46 @@
+# serverless.yml
+service: legal-resources-extractor
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  timeout: 300 # 5 minutes
+  environment:
+    OPENAI_API_KEY: ${ssm:/legal-resources/openai-key}
+    S3_BUCKET: legal-resources-data
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+      Resource: arn:aws:s3:::legal-resources-data/*
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+      Resource: arn:aws:dynamodb:*:*:table/legal-resources-history
+
+functions:
+  processLegalResourcesPdf:
+    handler: src/handler.processLegalResourcesPdf
+    events:
+      - schedule: rate(1 day)
+    timeout: 300
+
+resources:
+  Resources:
+    LegalResourcesHistoryTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: legal-resources-history
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE

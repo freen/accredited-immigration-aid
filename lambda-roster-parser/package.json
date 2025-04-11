@@ -1,0 +1,27 @@
+{
+    "name": "legal-resources-extractor",
+    "version": "1.0.0",
+    "description": "Lambda function to extract legal resources data from DOJ OLAP R&A roster",
+    "main": "src/handler.js",
+    "scripts": {
+        "test": "jest",
+        "deploy": "serverless deploy",
+        "package": "serverless package",
+        "invoke-local": "serverless invoke local --function processLegalResourcesPdf"
+    },
+    "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.461.0",
+        "@aws-sdk/client-s3": "^3.461.0",
+        "@aws-sdk/util-dynamodb": "^3.461.0",
+        "axios": "^1.6.2",
+        "openai": "^4.20.0",
+        "pdf-parse": "^1.1.1",
+        "uuid": "^11.1.0"
+    },
+    "devDependencies": {
+        "jest": "^29.7.0",
+        "serverless": "^4.12.0"
+    },
+    "author": "",
+    "license": "MIT"
+}
