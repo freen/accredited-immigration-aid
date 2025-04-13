@@ -1,0 +1,45 @@
+# iam-bootstrap.yaml - Deploy this first
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'IAM bootstrap template for development environment'
+
+Resources:
+  # IAM groups for different access levels
+  DeveloperGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: Developers
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  # Development deployment role
+  DeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: development-deployment-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                'aws:PrincipalType': 'User'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+      Policies:
+        - PolicyName: DeploymentPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                  - 'dynamodb:*'
+                  - 'lambda:*'
+                  - 'events:*'
+                  - 'logs:*'
+                  - 'iam:PassRole'
+                Resource: '*'

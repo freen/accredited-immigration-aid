@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Multi-environment infrastructure for Legal Resources Extractor'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'dev'
+    AllowedValues:
+      - 'dev'
+      - 'staging'
+      - 'prod'
+    Description: The deployment environment
+
+  OpenAIKeyPath:
+    Type: String
+    Default: '/legal-resources-extractor/openai-key'
+    Description: The SSM path to the OpenAI API key
+
+Mappings:
+  EnvironmentMap:
+    dev:
+      BucketNameSuffix: '-dev'
+      TableNameSuffix: '-dev'
+      ScheduleExpression: 'rate(1 day)'
+      LogRetentionInDays: 7
+    staging:
+      BucketNameSuffix: '-staging'
+      TableNameSuffix: '-staging'
+      ScheduleExpression: 'rate(1 day)'
+      LogRetentionInDays: 14
+    prod:
+      BucketNameSuffix: ''
+      TableNameSuffix: ''
+      ScheduleExpression: 'rate(1 day)'
+      LogRetentionInDays: 30
+
+Resources:
+  # S3 Bucket for storing legal resources data
+  LegalResourcesDataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub 'legal-resources-extractor-data${EnvironmentMap.${Environment}.BucketNameSuffix}'
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # DynamoDB Table for storing processing history
+  LegalResourcesHistoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'legal-resources-extractor-history${EnvironmentMap.${Environment}.TableNameSuffix}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProduction, true, false]
+
+  # Lambda execution role with appropriate permissions
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'legal-resources-extractor-lambda-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub 'legal-resources-extractor-lambda-policy-${Environment}'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub 'arn:aws:s3:::${LegalResourcesDataBucket}/*'
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource: !GetAtt LegalResourcesHistoryTable.Arn
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${OpenAIKeyPath}'
+
+  # CloudWatch Event Rule to trigger Lambda on schedule
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub 'legal-resources-extractor-scheduled-rule-${Environment}'
+      Description: 'Scheduled rule to trigger Legal Resources Extractor'
+      ScheduleExpression: !FindInMap [EnvironmentMap, !Ref Environment, ScheduleExpression]
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ProcessLegalResourcesFunction.Arn
+          Id: 'ProcessLegalResourcesTarget'
+
+  # Permission for CloudWatch Events to invoke Lambda
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessLegalResourcesFunction
+      Action: 'lambda:InvokeFunction'
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt ScheduledRule.Arn
+
+  # Lambda Function
+  ProcessLegalResourcesFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'process-legal-resources-extractor-${Environment}'
+      Handler: src/handler.processLegalResourcesPdf
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: nodejs18.x
+      Timeout: 300
+      MemorySize: 1024
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Sub '${{{resolve:ssm:${OpenAIKeyPath}:1}}}'
+          S3_BUCKET: !Ref LegalResourcesDataBucket
+          ENVIRONMENT: !Ref Environment
+
+  # Log Group for Lambda Function
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/process-legal-resources-extractor-${Environment}'
+      RetentionInDays: !FindInMap [EnvironmentMap, !Ref Environment, LogRetentionInDays]
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, 'prod']
+
+Outputs:
+  S3BucketName:
+    Description: 'Name of the S3 bucket for legal resources data'
+    Value: !Ref LegalResourcesDataBucket
+
+  HistoryTableName:
+    Description: 'Name of the DynamoDB history table'
+    Value: !Ref LegalResourcesHistoryTable
+
+  LambdaFunctionName:
+    Description: 'Name of the Lambda function'
+    Value: !Ref ProcessLegalResourcesFunction
+
+  LambdaRoleARN:
+    Description: 'ARN of the Lambda execution role'
+    Value: !GetAtt LambdaExecutionRole.Arn
