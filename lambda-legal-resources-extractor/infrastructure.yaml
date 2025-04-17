@@ -64,13 +64,27 @@ Resources:
           AttributeType: S
         - AttributeName: timestamp
           AttributeType: S
+        - AttributeName: batchId
+          AttributeType: S
       KeySchema:
         - AttributeName: id
           KeyType: HASH
         - AttributeName: timestamp
           KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: BatchIdIndex
+          KeySchema:
+            - AttributeName: batchId
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: !If [IsProduction, true, false]
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
   # Lambda execution role with appropriate permissions
   LambdaExecutionRole:
@@ -95,11 +109,19 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:PutObject
-                Resource: !Sub 'arn:aws:s3:::${LegalResourcesDataBucket}/*'
+                  - s3:ListBucket
+                Resource: 
+                  - !Sub 'arn:aws:s3:::${LegalResourcesDataBucket}'
+                  - !Sub 'arn:aws:s3:::${LegalResourcesDataBucket}/*'
               - Effect: Allow
                 Action:
+                  - dynamodb:BatchWriteItem
                   - dynamodb:PutItem
-                Resource: !GetAtt LegalResourcesHistoryTable.Arn
+                  - dynamodb:Query
+                  - dynamodb:GetItem
+                Resource: 
+                  - !GetAtt LegalResourcesHistoryTable.Arn
+                  - !Sub '${LegalResourcesHistoryTable.Arn}/index/*'
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
@@ -138,9 +160,12 @@ Resources:
       MemorySize: 1024
       Environment:
         Variables:
-          OPENAI_API_KEY: !Sub '${{{resolve:ssm:${OpenAIKeyPath}:1}}}'
+          OPENAI_API_KEY: !Sub '{{resolve:ssm:${OpenAIKeyPath}:1}}'
           S3_BUCKET: !Ref LegalResourcesDataBucket
+          DYNAMO_TABLE: !Ref LegalResourcesHistoryTable
+          AWS_REGION: !Ref 'AWS::Region'
           ENVIRONMENT: !Ref Environment
+          DEBUG: !If [IsDevEnvironment, 'true', 'false']
 
   # Log Group for Lambda Function
   LambdaLogGroup:
@@ -149,8 +174,44 @@ Resources:
       LogGroupName: !Sub '/aws/lambda/process-legal-resources-extractor-${Environment}'
       RetentionInDays: !FindInMap [EnvironmentMap, !Ref Environment, LogRetentionInDays]
 
+  # SNS Topic for notifications
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'legal-resources-extractor-notifications-${Environment}'
+      DisplayName: 'Legal Resources Extractor Notifications'
+
+  # Subscription for administrators
+  AdminSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: IsProduction
+    Properties:
+      Protocol: email
+      TopicArn: !Ref NotificationTopic
+      Endpoint: !Sub '{{resolve:ssm:/legal-resources-extractor/admin-email:1}}'
+
+  # CloudWatch Alarm for Lambda errors
+  LambdaErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'legal-resources-extractor-errors-${Environment}'
+      AlarmDescription: 'Alarm for Legal Resources Extractor Lambda errors'
+      Namespace: 'AWS/Lambda'
+      MetricName: 'Errors'
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProcessLegalResourcesFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref NotificationTopic
+
 Conditions:
   IsProduction: !Equals [!Ref Environment, 'prod']
+  IsDevEnvironment: !Equals [!Ref Environment, 'dev']
 
 Outputs:
   S3BucketName:
@@ -168,3 +229,7 @@ Outputs:
   LambdaRoleARN:
     Description: 'ARN of the Lambda execution role'
     Value: !GetAtt LambdaExecutionRole.Arn
+    
+  NotificationTopicARN:
+    Description: 'ARN of the SNS notification topic'
+    Value: !Ref NotificationTopic
