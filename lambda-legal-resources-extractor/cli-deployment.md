@@ -1,13 +1,13 @@
 # Deploying Legal Resources Extractor via AWS CLI
 
 ## Prerequisites
-- AWS CLI installed and configured
+- AWS CLI installed and configured with admin credentials
 - IAM bootstrap template deployed via AWS Console
 - OpenAI API key available
 
 ## Step 1: Create Required SSM Parameters
 
-First, create the necessary SSM parameters:
+First, using your admin AWS credentials, create the necessary SSM parameters:
 
 ```bash
 # Create the OpenAI API key parameter
@@ -27,7 +27,7 @@ aws ssm put-parameter \
 
 ## Step 2: Assume the Deployment Role
 
-After bootstrapping IAM from the console, assume the deployment role:
+After bootstrapping IAM from the console and creating the SSM parameters, now assume the deployment role:
 
 ```bash
 # Get your AWS account ID
