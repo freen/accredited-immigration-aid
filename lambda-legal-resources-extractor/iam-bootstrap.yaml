@@ -41,5 +41,15 @@ Resources:
                   - 'lambda:*'
                   - 'events:*'
                   - 'logs:*'
+                  - 'ssm:GetParameter'
+                  - 'ssm:GetParameters'
+                  - 'ssm:PutParameter'
+                  - 'sns:*'
+                  - 'cloudwatch:*'
                   - 'iam:PassRole'
                 Resource: '*'
+
+Outputs:
+  DeploymentRoleArn:
+    Description: 'ARN of the deployment role that can be assumed for CLI deployments'
+    Value: !GetAtt DeploymentRole.Arn
