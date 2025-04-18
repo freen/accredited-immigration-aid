@@ -1,13 +1,29 @@
 # Deploying Legal Resources Extractor via AWS CLI
 
+This guide provides the complete deployment process for the Legal Resources Extractor application using administrator credentials from IAM Identity Center.
+
 ## Prerequisites
-- AWS CLI installed and configured with admin credentials
-- IAM bootstrap template deployed via AWS Console
-- OpenAI API key available
+- AWS CLI installed and configured with IAM Identity Center administrator credentials
+- OpenAI API key
 
-## Step 1: Create Required SSM Parameters
+## Step 1: Deploy IAM Bootstrap Resources
 
-First, using your admin AWS credentials, create the necessary SSM parameters:
+First, deploy the IAM bootstrap resources:
+
+```bash
+# Ensure you're using your administrator profile
+export AWS_PROFILE=AdministratorAccess-[YOUR-ACCOUNT-ID]
+
+# Deploy the IAM bootstrap template
+aws cloudformation deploy \
+    --template-file iam-bootstrap.yaml \
+    --stack-name legal-resources-extractor-iam-bootstrap \
+    --capabilities CAPABILITY_NAMED_IAM
+```
+
+## Step 2: Create Required SSM Parameters
+
+Create the necessary SSM parameters:
 
 ```bash
 # Create the OpenAI API key parameter
@@ -25,33 +41,9 @@ aws ssm put-parameter \
     --overwrite
 ```
 
-## Step 2: Assume the Deployment Role
-
-After bootstrapping IAM from the console and creating the SSM parameters, now assume the deployment role:
-
-```bash
-# Get your AWS account ID
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
-# Assume the deployment role
-aws sts assume-role \
-    --role-arn "arn:aws:iam::${ACCOUNT_ID}:role/development-deployment-role" \
-    --role-session-name "InfrastructureDeployment" \
-    --duration-seconds 3600 \
-    > assume-role-output.json
-
-# Extract and export credentials
-export AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId assume-role-output.json)
-export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey assume-role-output.json)
-export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken assume-role-output.json)
-
-# Verify assumed role
-aws sts get-caller-identity
-```
-
 ## Step 3: Deploy the CloudFormation Stack
 
-Now deploy the infrastructure stack:
+Deploy the main infrastructure stack:
 
 ```bash
 # For development environment
@@ -60,15 +52,6 @@ aws cloudformation deploy \
     --stack-name legal-resources-extractor-dev \
     --parameter-overrides \
         Environment=dev \
-        OpenAIKeyPath=/legal-resources-extractor/openai-key \
-    --capabilities CAPABILITY_NAMED_IAM
-
-# For production environment
-aws cloudformation deploy \
-    --template-file infrastructure.yaml \
-    --stack-name legal-resources-extractor-prod \
-    --parameter-overrides \
-        Environment=prod \
         OpenAIKeyPath=/legal-resources-extractor/openai-key \
     --capabilities CAPABILITY_NAMED_IAM
 ```
@@ -85,19 +68,31 @@ aws cloudformation describe-stacks \
 
 ## Step 5: Deploy Lambda Code
 
-After the infrastructure is deployed, you can deploy your Lambda code:
+After the infrastructure is deployed, package and deploy your Lambda code:
 
 ```bash
 # Package the Lambda code
 zip -r function.zip ./* -x "*.git*" -x "*.zip"
 
+# Get the S3 bucket name from the stack outputs
+S3_BUCKET=$(aws cloudformation describe-stacks \
+    --stack-name legal-resources-extractor-dev \
+    --query "Stacks[0].Outputs[?OutputKey=='S3BucketName'].OutputValue" \
+    --output text)
+
 # Upload to S3 bucket
-aws s3 cp function.zip s3://legal-resources-extractor-data-dev/lambda/function.zip
+aws s3 cp function.zip s3://${S3_BUCKET}/lambda/function.zip
+
+# Get the Lambda function name from the stack outputs
+LAMBDA_FUNCTION=$(aws cloudformation describe-stacks \
+    --stack-name legal-resources-extractor-dev \
+    --query "Stacks[0].Outputs[?OutputKey=='LambdaFunctionName'].OutputValue" \
+    --output text)
 
 # Update the Lambda function code
 aws lambda update-function-code \
-    --function-name process-legal-resources-extractor-dev \
-    --s3-bucket legal-resources-extractor-data-dev \
+    --function-name ${LAMBDA_FUNCTION} \
+    --s3-bucket ${S3_BUCKET} \
     --s3-key lambda/function.zip
 ```
 
@@ -107,7 +102,7 @@ Invoke the Lambda function to test:
 
 ```bash
 aws lambda invoke \
-    --function-name process-legal-resources-extractor-dev \
+    --function-name ${LAMBDA_FUNCTION} \
     --invocation-type RequestResponse \
     --payload '{}' \
     output.json
@@ -115,3 +110,7 @@ aws lambda invoke \
 # Check the result
 cat output.json
 ```
+
+## Security Note
+
+This deployment process uses administrator credentials from IAM Identity Center, which is appropriate for initial setup in development environments. For production deployments, consider implementing a more restrictive role-based approach as your deployment processes mature.
