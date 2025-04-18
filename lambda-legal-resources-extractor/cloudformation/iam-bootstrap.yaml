@@ -24,9 +24,13 @@ Resources:
             Principal:
               AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
             Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: sts:AssumeRole
             Condition:
-              StringEquals:
-                'aws:PrincipalType': 'User'
+              ArnLike:
+                'aws:PrincipalArn': 'arn:aws:sts::${AWS::AccountId}:assumed-role/AWSReservedSSO_AdministratorAccess_*/*'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
       Policies:

@@ -11,10 +11,15 @@ Parameters:
       - 'prod'
     Description: The deployment environment
 
-  OpenAIKeyPath:
+  OpenAIApiKey:
     Type: String
-    Default: '/legal-resources-extractor/openai-key'
-    Description: The SSM path to the OpenAI API key
+    NoEcho: true
+    Description: The OpenAI API key (passed directly rather than via SSM)
+
+  AdminEmail:
+    Type: String
+    Default: 'admin@example.com'
+    Description: Admin email for notifications
 
 Mappings:
   EnvironmentMap:
@@ -40,7 +45,10 @@ Resources:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     Properties:
-      BucketName: !Sub 'legal-resources-extractor-data${EnvironmentMap.${Environment}.BucketNameSuffix}'
+      BucketName: !Join 
+        - ''
+        - - 'legal-resources-extractor-data'
+          - !FindInMap [EnvironmentMap, !Ref Environment, BucketNameSuffix]
       VersioningConfiguration:
         Status: Enabled
       BucketEncryption:
@@ -57,7 +65,10 @@ Resources:
   LegalResourcesHistoryTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub 'legal-resources-extractor-history${EnvironmentMap.${Environment}.TableNameSuffix}'
+      TableName: !Join
+        - ''
+        - - 'legal-resources-extractor-history'
+          - !FindInMap [EnvironmentMap, !Ref Environment, TableNameSuffix]
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: id
@@ -90,7 +101,10 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'legal-resources-extractor-lambda-role-${Environment}'
+      RoleName: !Join
+        - '-'
+        - - 'legal-resources-extractor-lambda-role'
+          - !Ref Environment
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -101,7 +115,10 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: !Sub 'legal-resources-extractor-lambda-policy-${Environment}'
+        - PolicyName: !Join
+            - '-'
+            - - 'legal-resources-extractor-lambda-policy'
+              - !Ref Environment
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -111,8 +128,8 @@ Resources:
                   - s3:PutObject
                   - s3:ListBucket
                 Resource: 
-                  - !Sub 'arn:aws:s3:::${LegalResourcesDataBucket}'
-                  - !Sub 'arn:aws:s3:::${LegalResourcesDataBucket}/*'
+                  - !Join ['', ['arn:aws:s3:::', !Ref LegalResourcesDataBucket]]
+                  - !Join ['', ['arn:aws:s3:::', !Ref LegalResourcesDataBucket, '/*']]
               - Effect: Allow
                 Action:
                   - dynamodb:BatchWriteItem
@@ -121,17 +138,16 @@ Resources:
                   - dynamodb:GetItem
                 Resource: 
                   - !GetAtt LegalResourcesHistoryTable.Arn
-                  - !Sub '${LegalResourcesHistoryTable.Arn}/index/*'
-              - Effect: Allow
-                Action:
-                  - ssm:GetParameter
-                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${OpenAIKeyPath}'
+                  - !Join ['', [!GetAtt LegalResourcesHistoryTable.Arn, '/index/*']]
 
   # CloudWatch Event Rule to trigger Lambda on schedule
   ScheduledRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'legal-resources-extractor-scheduled-rule-${Environment}'
+      Name: !Join
+        - '-'
+        - - 'legal-resources-extractor-scheduled-rule'
+          - !Ref Environment
       Description: 'Scheduled rule to trigger Legal Resources Extractor'
       ScheduleExpression: !FindInMap [EnvironmentMap, !Ref Environment, ScheduleExpression]
       State: ENABLED
@@ -152,7 +168,10 @@ Resources:
   ProcessLegalResourcesFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub 'process-legal-resources-extractor-${Environment}'
+      FunctionName: !Join
+        - '-'
+        - - 'process-legal-resources-extractor'
+          - !Ref Environment
       Handler: src/handler.processLegalResourcesPdf
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: nodejs18.x
@@ -160,25 +179,39 @@ Resources:
       MemorySize: 1024
       Environment:
         Variables:
-          OPENAI_API_KEY: !Sub '{{resolve:ssm:${OpenAIKeyPath}:1}}'
+          OPENAI_API_KEY: !Ref OpenAIApiKey
           S3_BUCKET: !Ref LegalResourcesDataBucket
           DYNAMO_TABLE: !Ref LegalResourcesHistoryTable
-          AWS_REGION: !Ref 'AWS::Region'
           ENVIRONMENT: !Ref Environment
           DEBUG: !If [IsDevEnvironment, 'true', 'false']
+      Code:
+        ZipFile: |
+          // This is a placeholder. The actual code will be deployed separately.
+          exports.processLegalResourcesPdf = async (event, context) => {
+            return { 
+              statusCode: 200, 
+              body: JSON.stringify({ message: 'Lambda function placeholder - actual code to be deployed' })
+            };
+          };
 
   # Log Group for Lambda Function
   LambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '/aws/lambda/process-legal-resources-extractor-${Environment}'
+      LogGroupName: !Join
+        - '/'
+        - - '/aws/lambda'
+          - !Ref ProcessLegalResourcesFunction
       RetentionInDays: !FindInMap [EnvironmentMap, !Ref Environment, LogRetentionInDays]
 
   # SNS Topic for notifications
   NotificationTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub 'legal-resources-extractor-notifications-${Environment}'
+      TopicName: !Join
+        - '-'
+        - - 'legal-resources-extractor-notifications'
+          - !Ref Environment
       DisplayName: 'Legal Resources Extractor Notifications'
 
   # Subscription for administrators
@@ -188,13 +221,16 @@ Resources:
     Properties:
       Protocol: email
       TopicArn: !Ref NotificationTopic
-      Endpoint: !Sub '{{resolve:ssm:/legal-resources-extractor/admin-email:1}}'
+      Endpoint: !Ref AdminEmail
 
   # CloudWatch Alarm for Lambda errors
   LambdaErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub 'legal-resources-extractor-errors-${Environment}'
+      AlarmName: !Join
+        - '-'
+        - - 'legal-resources-extractor-errors'
+          - !Ref Environment
       AlarmDescription: 'Alarm for Legal Resources Extractor Lambda errors'
       Namespace: 'AWS/Lambda'
       MetricName: 'Errors'
