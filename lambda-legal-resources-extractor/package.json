@@ -7,7 +7,9 @@
         "test": "jest",
         "deploy": "serverless deploy",
         "package": "serverless package",
-        "invoke-local": "serverless invoke local --function processLegalResourcesPdf"
+        "invoke-local": "serverless invoke local --function processLegalResourcesPdf",
+        "extract-pdf": "node scripts/extractPdfText.js",
+        "extract-pdf:dev": "node scripts/extractPdfText.js https://www.justice.gov/eoir/page/file/942306/dl ./mock-data/dev-extracted-text.txt"
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.461.0",
@@ -15,7 +17,8 @@
         "@aws-sdk/util-dynamodb": "^3.461.0",
         "axios": "^1.6.2",
         "openai": "^4.20.0",
-        "pdf-parse": "^1.1.1",
+        "pdf2html": "^3.3.0",
+        "tmp-promise": "^3.0.3",
         "uuid": "^11.1.0"
     },
     "devDependencies": {

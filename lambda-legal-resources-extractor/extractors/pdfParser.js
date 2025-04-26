@@ -1,27 +1,24 @@
-const pdfParse = require('pdf-parse');
+// const pdfParse = require('pdf-parse');
+const pdf2html = require('pdf2html');
 const { logger } = require('../utils/logger');
 
 /**
  * Extracts text from a PDF buffer
- * @param {Buffer} pdfBuffer - Buffer containing PDF data
+ * @param {String} filePath - Local path to the PDF file
  * @returns {Promise<string>} - Extracted text from the PDF
  */
-async function parsePdf(pdfBuffer) {
+async function parsePdf(filePath) {
   try {
-    logger.info('Beginning PDF text extraction');
-    const data = await pdfParse(pdfBuffer);
+    logger.info(`Beginning PDF text extraction from ${filePath}`);
+    // const data = await pdfParse(pdfBuffer);
+
+    const html = await pdf2html.html(filePath);
     
-    // Clean up text - remove excessive whitespace and normalize
-    const cleanedText = data.text
-      .replace(/\s+/g, ' ')
-      .replace(/(\r\n|\n|\r)/gm, ' ')
-      .trim();
-    
-    logger.info(`PDF text extracted successfully. Character count: ${cleanedText.length}`);
-    return cleanedText;
+    logger.info(`PDF text extracted successfully. Character count: ${html.length}`);
+    return html;
   } catch (error) {
     logger.error(`PDF parsing failed: ${error.message}`);
-    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+    throw error;
   }
 }
 

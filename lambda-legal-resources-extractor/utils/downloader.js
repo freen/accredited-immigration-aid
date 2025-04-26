@@ -1,3 +1,5 @@
+const fs = require('fs').promises;
+const { file } = require('tmp-promise');
 const axios = require('axios');
 const { logger } = require('./logger');
 
@@ -13,7 +15,16 @@ async function downloadPdf(url) {
       responseType: 'arraybuffer'
     });
     logger.info('PDF downloaded successfully');
-    return Buffer.from(response.data);
+
+    const tempFile = await file({ postfix: '.txt' });
+    outputPath = tempFile.path;
+    logger.info(`Using temporary file: ${outputPath}`);
+
+    logger.info(`Saving text to ${outputPath}...`);
+    await fs.writeFile(outputPath, response.data);
+    logger.info('Text saved successfully');
+
+    return tempFile;
   } catch (error) {
     logger.error(`Error downloading PDF: ${error.message}`);
     throw new Error(`Failed to download PDF: ${error.message}`);
