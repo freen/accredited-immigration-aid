@@ -1,5 +1,1 @@
-node_modules/**/*
-dist/**/*
-roster.*
 .DS_Store
-.env
